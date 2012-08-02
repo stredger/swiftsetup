@@ -10,7 +10,7 @@ apt-get -y install python-software-properties
 wait $!
 
 add-apt-repository ppa:swift-core/release 
-wait $
+wait $!
 
 apt-get update
 wait $!
