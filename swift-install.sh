@@ -3,7 +3,7 @@
 # pretty much just following: 
 # http://docs.openstack.org/developer/swift/howto_installmultinode.html
 
-scriptdir=~/swift
+scriptdir=~/swift-setup
 
 source ${scriptdir}/swift-envars.sh
 
