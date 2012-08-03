@@ -3,7 +3,7 @@
 # pretty much just following: 
 # http://docs.openstack.org/developer/swift/howto_installmultinode.html
 
-scriptdir=~/swift
+scriptdir=~/swift-setup
 
 source ${scriptdir}/swift-envars.sh
 
@@ -52,11 +52,16 @@ proxy-setup()
 {
     echo "======================= Start Proxy ========================="
 
+    if [ -z ${ISPROXY} ]; then
+	echo "We are not a proxy node and therefore should not configure like one!"
+	return
+    fi
+
     partpower=18 # 2^(the value) that the partition will be sized to.
-    replfactor=1 # replication factor for objects
+    replfactor=3 # replication factor for objects
     partmovetime=1 # number of hours to restrict moving a partition more than once
     
-    numzones="1" # list of storage devs/node nums (should be 1 to n)
+    numzones=${ZONESPERNODE} # list of storage devs/node nums (should be 1 to n)
 
     cd /etc/swift
     openssl req -new -x509 -nodes -out cert.crt -keyout cert.key<<EOF
@@ -71,11 +76,7 @@ EOF
 
     mv cert* /etc/swift
 
-    #memfile="/etc/memcached.conf"
-    #cp ${memfile} ${memfile}.back
-    #cat ${memfile} | sed 's:127.0.0.1:${PROXY_LOCAL_NET_IP}:' > ${memfile}
     perl -pi -e "s/-l 127.0.0.1/-l $PROXY_LOCAL_NET_IP/" /etc/memcached.conf
-
 
     service memcached restart
 
@@ -87,13 +88,31 @@ EOF
     swift-ring-builder container.builder create ${partpower} ${replfactor} ${partmovetime}
     swift-ring-builder object.builder create ${partpower} ${replfactor} ${partmovetime}
 
-    dev=sdb1
+    dev=sdb1 # name of the fs we mounted
     weight=100
-    #for each storage device in each node, add entries to the ring
-    for zone in ${numzones}; do
+    zone=1
+
+    # add self entries to the ring for each zone (storage dev)
+    for nzone in ${numzones}; do
 	swift-ring-builder account.builder add z${zone}-${STORAGE_LOCAL_NET_IP}:6002/${dev} ${weight}
 	swift-ring-builder container.builder add z${zone}-${STORAGE_LOCAL_NET_IP}:6001/${dev} ${weight}
 	swift-ring-builder object.builder add z${zone}-${STORAGE_LOCAL_NET_IP}:6000/${dev} ${weight}
+	let zone++
+    done
+
+    #for each storage device in each storage node, add entries to the ring 
+    for node in ${STORENODES}; do
+	nip=`host ${node} | awk /[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/ | cut -f4 -d \ `
+	if [ -z nip ]; then
+	    echo "Failed to add node ${node} to swift ring :("
+	    continue
+	fi
+	for nzone in ${numzones}; do
+	    swift-ring-builder account.builder add z${zone}-${nip}:6002/${dev} ${weight}
+	    swift-ring-builder container.builder add z${zone}-${nip}:6001/${dev} ${weight}
+	    swift-ring-builder object.builder add z${zone}-${nip}:6000/${dev} ${weight}
+	    let zone++
+	done
     done
 
     # verify the rings
@@ -110,7 +129,10 @@ EOF
     # move to config (should be in for every node in cluster)
     mv *.builder /etc/swift
     mv *.ring.gz /etc/swift
-    
+    for node in ${STORENODES}; do
+	scp /etc/swift/*.ring.gz ${scpuser}@${node}:~ # figure out how to copy these better
+    done
+
     chown -R swift:swift /etc/swift
 
     # start proxy server
@@ -148,7 +170,7 @@ device-setup()
 
     dev=${DEVICE}
     mntpt=/srv/node/sdb1
-    numzones="1"
+    numzones=${NUMZONES}
     mkdir -p /srv
 
     if [ ${dev} == "sda4" ]; then
@@ -208,7 +230,7 @@ EOF
 
 
 install-deps() {
-    source ./swift-depinstall.sh
+    source ${scriptdir}/swift-depinstall.sh
 }
 
 
