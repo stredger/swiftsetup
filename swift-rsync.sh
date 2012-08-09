@@ -11,13 +11,16 @@ fi
 # this should be changed based on the mount point and stuff (maybe put in envars?)
 fspath=/srv/node/sdb1/
 
+# note: using external ip addr causes the rsync daemon to break!!
+
 # create rsyncd config file
 cat >/etc/rsyncd.conf <<EOF
 uid = swift
 gid = swift
 log file = /var/log/rsyncd.log
 pid file = /var/run/rsyncd.pid
-address = $STORAGE_LOCAL_NET_IP
+#address = $STORAGE_LOCAL_NET_IP
+address = 127.0.0.1
 
 [account]
 max connections = 2

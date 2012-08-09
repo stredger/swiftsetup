@@ -9,7 +9,7 @@ export STORENODES="beta-0.multiswift.vikelab.emulab.net beta-1.multiswift.vikela
 
 
 # should be nodes ip addr?? Dont know how to uniquely id that...
-sip=`ifconfig | grep -e "inet addr:.*Bcast" | cut -f2 -d \: | cut -f1 -d \  | tr -d ' ' | head -n 1`
+sip=`ifconfig | grep -e "inet addr:[0-9]\{3\}.*Bcast" | cut -f2 -d \: | cut -f1 -d \  | tr -d ' '`
 export STORAGE_LOCAL_NET_IP=$sip
 echo "Local ip addr = $sip"
 

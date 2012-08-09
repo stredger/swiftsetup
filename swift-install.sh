@@ -76,7 +76,9 @@ EOF
 
     mv cert* /etc/swift
 
-    perl -pi -e "s/-l 127.0.0.1/-l $PROXY_LOCAL_NET_IP/" /etc/memcached.conf
+    # this breaks memcached deamon?? it refuses to connect for some raison,
+    #  use default to open to all connections
+    #perl -pi -e "s/-l 127.0.0.1/-l $PROXY_LOCAL_NET_IP/" /etc/memcached.conf
 
     service memcached restart
 
