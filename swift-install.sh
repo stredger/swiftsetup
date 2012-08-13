@@ -78,7 +78,7 @@ EOF
 
     # this breaks memcached deamon?? it refuses to connect for some raison,
     #  use default to open to all connections
-    #perl -pi -e "s/-l 127.0.0.1/-l $PROXY_LOCAL_NET_IP/" /etc/memcached.conf
+    perl -pi -e "s/-l 127.0.0.1/-l $PROXY_LOCAL_NET_IP/" /etc/memcached.conf
 
     service memcached restart
 
@@ -104,11 +104,12 @@ EOF
 
     #for each storage device in each storage node, add entries to the ring 
     for node in ${STORENODES}; do
-	nip=`host ${node} | awk /[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/ | cut -f4 -d \ `
-	if [ -z nip ]; then
-	    echo "Failed to add node ${node} to swift ring :("
-	    continue
-	fi
+	nip=$node
+        #nip=`host ${node} | awk /[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/ | cut -f4 -d \ `
+	#if [ -z nip ]; then
+	#    echo "Failed to add node ${node} to swift ring :("
+	#    continue
+	#fi
 	for nzone in ${numzones}; do
 	    swift-ring-builder account.builder add z${zone}-${nip}:6002/${dev} ${weight}
 	    swift-ring-builder container.builder add z${zone}-${nip}:6001/${dev} ${weight}
@@ -131,14 +132,20 @@ EOF
     # move to config (should be in for every node in cluster)
     mv *.builder /etc/swift
     mv *.ring.gz /etc/swift
+
+    # figure out how to copy these better
     for node in ${STORENODES}; do
-	scp /etc/swift/*.ring.gz ${scpuser}@${node}:~ # figure out how to copy these better
+	scp /etc/swift/*.ring.gz ${scpuser}@${node}:~ 
     done
 
     chown -R swift:swift /etc/swift
 
     # start proxy server
     swift-init proxy start
+
+    # for emulab!!!
+    cp /etc/swift/swift.conf /users/${scpuser}/
+    cp /etc/swift/*ring.gz /users/${scpuser}/
 
     echo "======================= Done Proxy ========================="
 }
@@ -236,6 +243,26 @@ install-deps() {
 }
 
 
+# this has never worked....
+swift-test() {
+
+    cat > /etc/swift/dispersion.conf <<EOF
+[dispersion]
+auth_url = http://localhost:8080/auth/v1.0
+auth_user = test:tester
+auth_key = testing
+EOF
+
+    chown swift:swift /etc/swift/dispersion.conf 
+
+    swift-dispersion-populate
+
+    swift-dispersion-report
+
+}
+
+
+
 all()
 {
     install-deps
@@ -288,6 +315,10 @@ while [ $1 ]; do
 	
 	"store")
 	    swift-setup
+	    ;;
+
+	"test")
+	    swift-test
 	    ;;
 
 	*)

@@ -20,8 +20,9 @@ else
     # we are running as root! may want to set up a key!
     # or figure out a better way to get this to every node
     #scp $alphanode:/etc/swift/swift.conf /etc/swift
-    cp /users/${scpuser}/swift.conf /etc/swift/
-    cp /users/${scpuser}/*.ring.gz /etc/swift/
+    #cp ~/swift-setup/swift.conf /etc/swift/
+    #cp ~/*.ring.gz /etc/swift/
+    cp ~/swift-setup/swiftage/* /etc/swift/
 fi
 
 echo "done!"

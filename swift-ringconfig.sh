@@ -47,6 +47,8 @@ use = egg:swift#container
 [container-updater]
 
 [container-auditor]
+
+[container-sync]
 EOF
 echo "Done!!"
 
