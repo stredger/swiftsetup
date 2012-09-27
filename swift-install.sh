@@ -57,9 +57,9 @@ proxy-setup()
 	return
     fi
 
-    partpower={PARTPOWER} # 2^(the value) that the partition will be sized to.
-    replfactor={REPLICATION} # replication factor for objects
-    partmovetime={MINMOVETIME} # number of hours to restrict moving a partition more than once
+    partpower=${PARTPOWER} # 2^(the value) that the partition will be sized to.
+    replfactor=${REPLICATION} # replication factor for objects
+    partmovetime=${MINMOVETIME} # number of hours to restrict moving a partition more than once
     
     numzones=${ZONESPERNODE} # list of storage devs/node nums (should be 1 to n)
 

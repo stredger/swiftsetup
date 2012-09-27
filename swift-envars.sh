@@ -43,6 +43,16 @@ export PARTPOWER=18 # how big each partition is as 2^(this num)
 export REPLICATION=3 # num times things are replicated
 export MINMOVETIME=1 # move time in hours
 
+numnodes=0
+for node in $STORENODES; do
+    numnodes=$(($numnodes+1))
+done
+
+if [[ ${REPLICATION} -gt ${numnodes} ]]; then
+    echo "Replication factor greater than total num of storage nodes!! Fix this in swift-envars.sh!!"
+    exit
+fi
+
 
 # should be 1 for multinode setup, but must be a list
 export ZONESPERNODE="1"
