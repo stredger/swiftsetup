@@ -12,9 +12,9 @@ if [ ${ISPROXY} ]; then
 swift_hash_path_suffix = `od -t x8 -N 8 -A n </dev/random`
 EOF
 
-    for node in ${STORENODES}; do
-	scp /etc/swift/swift.conf ${scpuser}@${node}:~ # figure out how to copy these better
-    done
+    # for node in ${STORENODES}; do
+    # 	scp /etc/swift/swift.conf ${scpuser}@${node}:~ # figure out how to copy these better
+    # done
 else
     echo -n "Copying to /etc/swift/ swift.conf + *.rings.gz ..."
     # we are running as root! may want to set up a key!

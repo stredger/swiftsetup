@@ -48,7 +48,7 @@ swift-housekeep()
 }
 
 
-proxy-setup() 
+proxy-setup()
 {
     echo "======================= Start Proxy ========================="
 
@@ -57,9 +57,9 @@ proxy-setup()
 	return
     fi
 
-    partpower=18 # 2^(the value) that the partition will be sized to.
-    replfactor=3 # replication factor for objects
-    partmovetime=1 # number of hours to restrict moving a partition more than once
+    partpower={PARTPOWER} # 2^(the value) that the partition will be sized to.
+    replfactor={REPLICATION} # replication factor for objects
+    partmovetime={MINMOVETIME} # number of hours to restrict moving a partition more than once
     
     numzones=${ZONESPERNODE} # list of storage devs/node nums (should be 1 to n)
 
@@ -147,6 +147,10 @@ proxy-setup()
     # cp /etc/swift/swift.conf /users/${scpuser}/
     # cp /etc/swift/*ring.gz /users/${scpuser}/
 
+    mkdir -p ~/cptostorage
+    cp /etc/swift/swift.conf ~/cptostorage
+    cp /etc/swift/*ring.gz ~/cptostorage
+
     echo "======================= Done Proxy ========================="
 }
 
@@ -154,6 +158,9 @@ proxy-setup()
 swift-setup()
 {
     echo "======================= Start Store ========================="
+
+    cp ~/cptostorage/* /etc/swift # probs want to check if this fails!
+    # but we may have the files there already... hmmm, warning then?
 
     # generate config file ans start rsync service
     source ${scriptdir}/swift-rsync.sh

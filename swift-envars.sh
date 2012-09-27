@@ -38,7 +38,16 @@ export DEVICE=swift-disk
 # 490 gigs!
 export SWIFTFSIZE=$((490*1000000))
 
+
+export PARTPOWER=18 # how big each partition is as 2^(this num) 
+export REPLICATION=3 # num times things are replicated
+export MINMOVETIME=1 # move time in hours
+
+
 # should be 1 for multinode setup, but must be a list
 export ZONESPERNODE="1"
+
+
+
 
 export scpuser=root
