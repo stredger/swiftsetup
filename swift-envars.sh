@@ -35,6 +35,8 @@ fi
 
 # for local loopback
 export DEVICE=swift-disk
+# 490 gigs!
+export SWIFTFSIZE=$((490*1000000))
 
 # should be 1 for multinode setup, but must be a list
 export ZONESPERNODE="1"

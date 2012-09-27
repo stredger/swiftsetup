@@ -8,8 +8,9 @@ STORAGE_LOCAL_NET_IP not set! using 127.0.0.1 as default"
     STORAGE_LOCAL_NET_IP=127.0.0.1
 fi
 
-# this should be changed based on the mount point and stuff (maybe put in envars?)
-fspath=/srv/node/sdb1/
+# these should be changed based on the mount point and how many cons you want (should be in envars)
+fspath=/srv/node/
+numconns=6
 
 # create rsyncd config file
 cat >/etc/rsyncd.conf <<EOF
@@ -20,19 +21,19 @@ pid file = /var/run/rsyncd.pid
 address = $STORAGE_LOCAL_NET_IP
 
 [account]
-max connections = 2
+max connections = $numconns
 path = $fspath
 read only = false
 lock file = /var/lock/account.lock
 
 [container]
-max connections = 2
+max connections = $numconns
 path = $fspath
 read only = false
 lock file = /var/lock/container.lock
 
 [object]
-max connections = 2
+max connections = $numconns
 path = $fspath
 read only = false
 lock file = /var/lock/object.lock

@@ -64,17 +64,17 @@ proxy-setup()
     numzones=${ZONESPERNODE} # list of storage devs/node nums (should be 1 to n)
 
     cd /etc/swift
-    openssl req -new -x509 -nodes -out cert.crt -keyout cert.key<<EOF
-CA
-British Columbia
-.
-UVic
-.
-.
-.
-EOF
+#     openssl req -new -x509 -nodes -out cert.crt -keyout cert.key<<EOF
+# CA
+# British Columbia
+# .
+# UVic
+# .
+# .
+# .
+# EOF
 
-    mv cert* /etc/swift
+#    mv cert* /etc/swift
 
     # this breaks memcached deamon?? it refuses to connect for some raison,
     #  use default to open to all connections
@@ -95,12 +95,12 @@ EOF
     zone=1
 
     # add self entries to the ring for each zone (storage dev)
-    for nzone in ${numzones}; do
-	swift-ring-builder account.builder add z${zone}-${STORAGE_LOCAL_NET_IP}:6002/${dev} ${weight}
-	swift-ring-builder container.builder add z${zone}-${STORAGE_LOCAL_NET_IP}:6001/${dev} ${weight}
-	swift-ring-builder object.builder add z${zone}-${STORAGE_LOCAL_NET_IP}:6000/${dev} ${weight}
-	let zone++
-    done
+    # for nzone in ${numzones}; do
+    # 	swift-ring-builder account.builder add z${zone}-${STORAGE_LOCAL_NET_IP}:6002/${dev} ${weight}
+    # 	swift-ring-builder container.builder add z${zone}-${STORAGE_LOCAL_NET_IP}:6001/${dev} ${weight}
+    # 	swift-ring-builder object.builder add z${zone}-${STORAGE_LOCAL_NET_IP}:6000/${dev} ${weight}
+    # 	let zone++
+    # done
 
     #for each storage device in each storage node, add entries to the ring 
     for node in ${STORENODES}; do
@@ -134,9 +134,9 @@ EOF
     mv *.ring.gz /etc/swift
 
     # figure out how to copy these better
-    for node in ${STORENODES}; do
-	scp /etc/swift/*.ring.gz ${scpuser}@${node}:~ 
-    done
+    # for node in ${STORENODES}; do
+    # 	scp /etc/swift/*.ring.gz ${scpuser}@${node}:~ 
+    # done
 
     chown -R swift:swift /etc/swift
 
@@ -144,8 +144,8 @@ EOF
     swift-init proxy start
 
     # for emulab!!!
-    cp /etc/swift/swift.conf /users/${scpuser}/
-    cp /etc/swift/*ring.gz /users/${scpuser}/
+    # cp /etc/swift/swift.conf /users/${scpuser}/
+    # cp /etc/swift/*ring.gz /users/${scpuser}/
 
     echo "======================= Done Proxy ========================="
 }
@@ -196,7 +196,7 @@ EOF
 
     elif [ ${dev} == "swift-disk" ]; then # loopback into file
 	devpath=/srv/${dev}
-	dd if=/dev/zero of=${devpath} bs=1024 count=0 seek=1000000
+	dd if=/dev/zero of=${devpath} bs=1024 count=0 seek=${SWIFTFSIZE}
    
 	mkfs.xfs -i size=1024 ${devpath}
 	echo "${devpath} $mntpt xfs loop,noatime,nodiratime,nobarrier,logbufs=8 0 0" >> /etc/fstab
@@ -248,9 +248,9 @@ swift-test() {
 
     cat > /etc/swift/dispersion.conf <<EOF
 [dispersion]
-auth_url = http://localhost:8080/auth/v1.0
-auth_user = test:tester
-auth_key = testing
+auth_url = http://10.0.0.9:8080/auth/v1.0
+auth_user = system:swift
+auth_key = subterrania
 EOF
 
     chown swift:swift /etc/swift/dispersion.conf 
@@ -318,7 +318,8 @@ while [ $1 ]; do
 	    ;;
 
 	"test")
-	    swift-test
+	    #swift-test
+	    echo "The dispersion test doesnt work!!"
 	    ;;
 
 	*)
@@ -327,3 +328,43 @@ while [ $1 ]; do
     esac
     shift
 done
+
+#
+# http://docs.openstack.org/developer/swift/howto_installmultinode.html
+#
+
+# Get an X-Storage-Url and X-Auth-Token:
+# curl -k -v -H 'X-Storage-User: system:root' -H 'X-Storage-Pass: testpass' https://$PROXY_LOCAL_NET_IP:8080/auth/v1.0
+# curl -k -v -H 'X-Storage-User: system:gis' -H 'X-Storage-Pass: uvicgis' https://198.55.37.2:8080/auth/v1.0
+# curl -k -v -H 'X-Storage-User: system:swift' -H 'X-Storage-Pass: subterrania' https://10.0.0.3:8080/auth/v1.0
+
+# Check that you can HEAD the account:
+# curl -k -v -H 'X-Auth-Token: <token-from-x-auth-token-above>' <url-from-x-storage-url-above>
+
+# Check that swift works (at this point, expect zero containers, zero objects, and zero bytes):
+# swift -A http://$PROXY_LOCAL_NET_IP:8080/auth/v1.0 -U system:root -K testpass stat
+# swift -A https://10.0.0.3:8080/auth/v1.0 -U system:swift -K subterrania stat
+# swift -A https://198.55.37.2:8080/auth/v1.0 -U system:gis -K uvicgis stat
+
+# Use swift to upload a few files named ‘bigfile[1-2].tgz’ to a container named ‘myfiles’:
+# swift -A https://$PROXY_LOCAL_NET_IP:8080/auth/v1.0 -U system:root -K testpass upload myfiles bigfile1.tgz
+# swift -A https://$PROXY_LOCAL_NET_IP:8080/auth/v1.0 -U system:root -K testpass upload myfiles bigfile2.tgz
+
+# Use swift to download all files from the ‘myfiles’ container:
+# swift -A https://$PROXY_LOCAL_NET_IP:8080/auth/v1.0 -U system:root -K testpass download myfiles
+
+# Use swift to save a backup of your builder files to a container named ‘builders’. Very important not to lose your builders!:
+# swift -A https://$PROXY_LOCAL_NET_IP:8080/auth/v1.0 -U system:root -K testpass upload builders /etc/swift/*.builder
+
+# Use swift to list your containers:
+# swift -A https://$PROXY_LOCAL_NET_IP:8080/auth/v1.0 -U system:root -K testpass list
+
+# Use swift to list the contents of your ‘builders’ container:
+# swift -A https://$PROXY_LOCAL_NET_IP:8080/auth/v1.0 -U system:root -K testpass list builders
+
+# Use swift to download all files from the ‘builders’ container:
+# swift -A https://$PROXY_LOCAL_NET_IP:8080/auth/v1.0 -U system:root -K testpass download builders
+
+
+# to benchmark
+# swift-bench -A https://10.0.0.3:8080/auth/v1.0 -U system:swift -K subterrania -c 1 -s 10 -n 1 -g 1
