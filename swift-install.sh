@@ -77,8 +77,8 @@ proxy-setup()
 #    mv cert* /etc/swift
 
     # this breaks memcached deamon?? it refuses to connect for some raison,
-    #  use default to open to all connections
-    perl -pi -e "s/-l 127.0.0.1/-l $PROXY_LOCAL_NET_IP/" /etc/memcached.conf
+    #  use 0.0.0.0 to open to all connections
+    perl -pi -e "s/-l 127.0.0.1/-l 0.0.0.0/" /etc/memcached.conf
 
     service memcached restart
 
@@ -150,6 +150,10 @@ proxy-setup()
     mkdir -p ~/cptostorage
     cp /etc/swift/swift.conf ~/cptostorage
     cp /etc/swift/*ring.gz ~/cptostorage
+
+
+    echo "NOTE: Add more users in proxy-server.conf!"
+    echo "Requests will only work for network interfaces that have associated users!"
 
     echo "======================= Done Proxy ========================="
 }
