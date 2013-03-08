@@ -2,8 +2,8 @@
 
 
 # Create config files for each ring
-echo -n "Generating /etc/swift/object-expirer.conf... "
-cat >/etc/swift/object-expirer.conf <<EOF
+
+cat >/tmp/object-expirer.conf <<EOF
 [DEFAULT]
 # swift_dir = /etc/swift
 # user = swift
@@ -38,4 +38,3 @@ use = egg:swift#memcache
 use = egg:swift#catch_errors
 # See proxy-server.conf-sample for options
 EOF
-echo "Done!!"

@@ -274,6 +274,23 @@ def clean_files(files="proxy-server.conf"):
     sudo('rm -rf '+files)
 
 
+
+@parallel
+@roles('swift-cluster')
+def test_ips():
+    put(swift_script_dir+'getmyip.py', '/tmp/')
+    run('python /tmp/getmyip.py')
+    
+
+@parallel
+@roles('swift-proxies')
+def test_memcached():
+    put(swift_script_dir+'getmyip.py', '/tmp/')
+    put(swift_script_dir+'memcachedtest.py', '/tmp/')
+    run('python /tmp/memcachedtest.py')
+
+
+
 def swift_install():
     execute(install_swift_deps)
     #execute(setup_loop_device)
