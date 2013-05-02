@@ -31,23 +31,23 @@ import socket
 
 # TODO:
 #  auto back up swift.config and builders! (place into swift repo?)
-#  fails for non bash shell
-#  generate rings and stuff on a 'boss' machine which may not be local
-#  make mountpoint global??
+#  have boss builder dir?
+#  have temp script dir other than /tmp/?
+#  make some vars global??
+#  make scripts output to local dir so we can define where all this gets done
 
-nw1 = "stredger@pc2.instageni.northwestern.edu"
-nw2 = "stredger@pc3.instageni.northwestern.edu"
-nw3 = "stredger@pc4.instageni.northwestern.edu"
-nw4 = "stredger@pc5.instageni.northwestern.edu"
+swift1 = "alpha.hdoop.vikelab.emulab.net" #155.98.39.31
+swift2 = "beta-0.hdoop.vikelab.emulab.net" #155.98.39.36
+swift3 = "beta-1.hdoop.vikelab.emulab.net" #155.98.39.38
+swift4 = "pantera.cs.uvic.ca" #142.104.69.48
 
 
-swift_workers = [nw1, nw2, nw3, nw4]
-swift_proxies = [nw4]
-localhost = ["localhost"]
-swift_cluster = [nw1, nw2, nw3, nw4]
+swift_workers = [swift2, swift3, swift1]
+swift_proxies = [swift1]
+boss = [swift1] # machine where all the rings and config files are generated
+swift_cluster = [swift2, swift3, swift1]
 
-swift_worker_ips = ["165.124.51.141", "165.124.51.142", "165.124.51.143", "165.124.51.144"]
-
+swift_worker_ips = ["155.98.39.31", "155.98.39.36", "155.98.39.38"] # autogen this on master with `host`?
 
 
 env.roledefs = {
@@ -55,16 +55,14 @@ env.roledefs = {
     'swift-workers':swift_workers,
     'swift-proxies':swift_proxies,
     'swift-object-expirer':[swift_workers[0]],
-    'localhost':localhost
+    'boss':boss
 }
 
 env.key_filename = "~/.ssh/st_rsa"
-
+env.password = "STE!@#!!"
 
 # this is where all our helper scripts should be!
 swift_script_dir = "./"
-
-
 
 
 # Creates the ring files which are the heart (brain?) of the swift repo
@@ -74,10 +72,12 @@ swift_script_dir = "./"
 #  all premissions on them
 def cluster_rings():
     execute(create_rings)
+    execute(get_rings)
     execute(distribute_rings)
 
 
-@roles('localhost')
+@runs_once
+@roles('boss')
 def create_rings(dev="swiftfs"):
  
     partpower = 18 # how large each partition is, 2^this_num
@@ -89,26 +89,38 @@ def create_rings(dev="swiftfs"):
         print "we are tring to have", repfactor, "replications on", len(swift_worker_ips), "swift workers!"
         sys.exit()
 
-    local('swift-ring-builder account.builder create '+str(partpower)+' '+str(repfactor)+' '+str(partmovetime))
-    local('swift-ring-builder container.builder create '+str(partpower)+' '+str(repfactor)+' '+str(partmovetime))
-    local('swift-ring-builder object.builder create '+str(partpower)+' '+str(repfactor)+' '+str(partmovetime))
+
+    # maybe have a place to cd to and build these files?
+    run('swift-ring-builder account.builder create '+str(partpower)+' '+str(repfactor)+' '+str(partmovetime))
+    run('swift-ring-builder container.builder create '+str(partpower)+' '+str(repfactor)+' '+str(partmovetime))
+    run('swift-ring-builder object.builder create '+str(partpower)+' '+str(repfactor)+' '+str(partmovetime))
 
     zone = 0 # should be unique for each ip
     for ip in swift_worker_ips:
-        local('swift-ring-builder account.builder add z'+str(zone)+'-'+ip+':6002/'+dev+' '+str(weight))
-	local('swift-ring-builder container.builder add z'+str(zone)+'-'+ip+':6001/'+dev+' '+str(weight))
-	local('swift-ring-builder object.builder add z'+str(zone)+'-'+ip+':6000/'+dev+' '+str(weight))
+        run('swift-ring-builder account.builder add z'+str(zone)+'-'+ip+':6002/'+dev+' '+str(weight))
+	run('swift-ring-builder container.builder add z'+str(zone)+'-'+ip+':6001/'+dev+' '+str(weight))
+	run('swift-ring-builder object.builder add z'+str(zone)+'-'+ip+':6000/'+dev+' '+str(weight))
         zone += 1
 
     # verify the rings
-    local('swift-ring-builder account.builder')
-    local('swift-ring-builder container.builder')
-    local('swift-ring-builder object.builder')
+    run('swift-ring-builder account.builder')
+    run('swift-ring-builder container.builder')
+    run('swift-ring-builder object.builder')
 
     # distribute the partitions evenly across the nodes
-    local('swift-ring-builder account.builder rebalance')
-    local('swift-ring-builder container.builder rebalance')
-    local('swift-ring-builder object.builder rebalance')
+    run('swift-ring-builder account.builder rebalance')
+    run('swift-ring-builder container.builder rebalance')
+    run('swift-ring-builder object.builder rebalance')
+
+
+@runs_once
+@roles('boss')
+def get_rings():
+    ring_suff = "*.ring.gz"
+    builder_suff = "*.builder"
+
+    get(ring_suff, "/tmp/")
+    get(builder_suff, "/tmp/")
 
 
 @parallel
@@ -120,8 +132,15 @@ def distribute_rings():
     sudo('mkdir -p /etc/swift')
     sudo('chmod a+w /etc/swift')
     for ring in rings:
-        put(ring, '/etc/swift/'+ring, use_sudo=True)
+        put("/tmp/"+ring, '/etc/swift/'+ring, use_sudo=True)
     sudo('chown -R swift:swift /etc/swift')
+
+
+@parallel
+@roles('boss')
+def distribute_builders():
+    pass
+
 
 
 @parallel
@@ -141,7 +160,7 @@ def proxy_config():
     execute(cluster_proxy)
 
 
-@roles('localhost')
+@runs_once
 def local_proxy(user="gis", passwd="uvicgis"):
 
     local('export user='+user+' && export passwd='+passwd+' && '+swift_script_dir+'swift-pconfgen.sh')
@@ -165,7 +184,6 @@ def cluster_proxy(host_addr="www.google.com"):
 
 
 
-
 def storage_config():
     execute(storage_config_gen)
     execute(cluster_storage)
@@ -176,7 +194,7 @@ def storage_config():
 #  will use when we append, the 'dev' that is contained in the rings.
 #  in the default case 'dev' holds swiftfs, and /srv/node/swiftfs is
 #  the file system we use!
-@roles('localhost')
+@runs_once
 def storage_config_gen(fs_path="/srv/node", max_conn=6):
   
     local('export fspath='+fs_path+'; export maxconn='+str(max_conn)+'; '+swift_script_dir+'swift-rsync.sh')
@@ -211,7 +229,7 @@ def cluster_storage(host_addr="www.google.com", swiftfs_path="/srv/node/swiftfs"
 
 
 @roles('swift-object-expirer')
-def cluster_object_exp():
+def cluster_object_exp(swiftfs_path="/srv/node/swiftfs"):
 
     put('/tmp/object-expirer.conf', '/etc/swift')
 
@@ -230,7 +248,7 @@ def cluster_keygen():
     execute(distribute_key)
 
 
-@roles('localhost')
+@runs_once
 def local_keygen():
 
     # we probably want to back up the file this generates somewhere!
@@ -322,14 +340,12 @@ def test_ips():
     run('python /tmp/getmyip.py')
     
 
-
 @parallel
 @roles('swift-proxies')
 def test_memcached():
     put(swift_script_dir+'getmyip.py', '/tmp/')
     put(swift_script_dir+'memcachedtest.py', '/tmp/')
     run('python /tmp/memcachedtest.py')
-
 
 
 @parallel
@@ -358,7 +374,7 @@ def swift_install(check_shell=True, setup_device=True):
     print "\n\n\t Beginning swift installation"
     print "machines in cluster:", swift_cluster
     print "proxy machines:", swift_proxies
-    print "worker machines", swift_workers
+    print "worker machines:", swift_workers
     print "setup loopback file system: ", setup_device
     print "\n\n"
 
