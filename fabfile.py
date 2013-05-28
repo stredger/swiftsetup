@@ -1,7 +1,7 @@
-from fabric.api import *
-import sys
-import socket
 
+import sys, os
+from fabric.api import *
+from settings import *
 
 # Before you run:
 #  make sure all the machines are in the correct lists and the ip's 
@@ -31,38 +31,28 @@ import socket
 
 # TODO:
 #  auto back up swift.config and builders! (place into swift repo?)
-#  have boss builder dir?
+#  have boss .builder dir?
 #  have temp script dir other than /tmp/?
 #  make some vars global??
 #  make scripts output to local dir so we can define where all this gets done
-
-swift1 = "alpha.hdoop.vikelab.emulab.net" #155.98.39.31
-swift2 = "beta-0.hdoop.vikelab.emulab.net" #155.98.39.36
-swift3 = "beta-1.hdoop.vikelab.emulab.net" #155.98.39.38
-swift4 = "pantera.cs.uvic.ca" #142.104.69.48
-
-
-swift_workers = [swift2, swift3, swift1]
-swift_proxies = [swift1]
-boss = [swift1] # machine where all the rings and config files are generated
-swift_cluster = [swift2, swift3, swift1]
-
-swift_worker_ips = ["155.98.39.31", "155.98.39.36", "155.98.39.38"] # autogen this on master with `host`?
-
 
 env.roledefs = {
     'swift-cluster':swift_cluster,
     'swift-workers':swift_workers,
     'swift-proxies':swift_proxies,
-    'swift-object-expirer':[swift_workers[0]],
-    'boss':boss
+    'swift-object-expirer':swift_object_exp,
+    'boss':boss,
+    'loopback-machines':loopback_machines
 }
 
-env.key_filename = "~/.ssh/st_rsa"
-env.password = "STE!@#!!"
+env.key_filename = keyfile
+env.password = passwd
 
-# this is where all our helper scripts should be!
-swift_script_dir = "./"
+
+
+def get_script_path(f):
+    return os.path.join(swift_script_dir, f)
+
 
 
 # Creates the ring files which are the heart (brain?) of the swift repo
@@ -78,49 +68,51 @@ def cluster_rings():
 
 @runs_once
 @roles('boss')
-def create_rings(dev="swiftfs"):
- 
+def create_rings():
+
     partpower = 18 # how large each partition is, 2^this_num
     repfactor = 3 # replication factor
-    partmovetime = 1 # min hours between partition move
+    movetime = 1 # min hours between partition move
     weight = 100
+    builders = ['account.builder', 'container.builder', 'object.builder']
+    ports = ['6002', '6001', '6000']
 
-    if len(swift_worker_ips) < repfactor:
-        print "we are tring to have", repfactor, "replications on", len(swift_worker_ips), "swift workers!"
+    if len(swift_workers) < repfactor:
+        print "we are tring to have %d replications on %d swift workers!" % (repfactor, len(swift_worker))
         sys.exit()
 
+    worker_machines = [machines[m] for m in swift_workers]
 
     # maybe have a place to cd to and build these files?
-    run('swift-ring-builder account.builder create '+str(partpower)+' '+str(repfactor)+' '+str(partmovetime))
-    run('swift-ring-builder container.builder create '+str(partpower)+' '+str(repfactor)+' '+str(partmovetime))
-    run('swift-ring-builder object.builder create '+str(partpower)+' '+str(repfactor)+' '+str(partmovetime))
+    for b in builders:
+        run('swift-ring-builder %s create %s %s %s' % (b, partpower, repfactor, movetime))
 
     zone = 0 # should be unique for each ip
-    for ip in swift_worker_ips:
-        run('swift-ring-builder account.builder add z'+str(zone)+'-'+ip+':6002/'+dev+' '+str(weight))
-	run('swift-ring-builder container.builder add z'+str(zone)+'-'+ip+':6001/'+dev+' '+str(weight))
-	run('swift-ring-builder object.builder add z'+str(zone)+'-'+ip+':6000/'+dev+' '+str(weight))
+    for m in worker_machines:
+        ip = m.ip
+        dev = os.path.split(m.mntpt)[1]
+        # make an entry for machine m in each builder b at port p 
+        for b, p in [(builders[n],ports[n]) for n in xrange(len(builders))]:
+            run('swift-ring-builder %s add z%s-%s:%s/%s %s' % (b, zone, ip, p, dev, weight))
         zone += 1
 
     # verify the rings
-    run('swift-ring-builder account.builder')
-    run('swift-ring-builder container.builder')
-    run('swift-ring-builder object.builder')
+    for b in builders:
+        run('swift-ring-builder %s' % b)
 
     # distribute the partitions evenly across the nodes
-    run('swift-ring-builder account.builder rebalance')
-    run('swift-ring-builder container.builder rebalance')
-    run('swift-ring-builder object.builder rebalance')
+    for b in builders:
+        run('swift-ring-builder %s rebalance' % b)
 
 
 @runs_once
 @roles('boss')
 def get_rings():
-    ring_suff = "*.ring.gz"
-    builder_suff = "*.builder"
+    ring_suff = '*.ring.gz'
+    builder_suff = '*.builder'
 
-    get(ring_suff, "/tmp/")
-    get(builder_suff, "/tmp/")
+    get(ring_suff, '/tmp/')
+    get(builder_suff, '/tmp/')
 
 
 @parallel
@@ -132,7 +124,7 @@ def distribute_rings():
     sudo('mkdir -p /etc/swift')
     sudo('chmod a+w /etc/swift')
     for ring in rings:
-        put("/tmp/"+ring, '/etc/swift/'+ring, use_sudo=True)
+        put(os.path.join('/tmp/',ring), os.path.join('/etc/swift/',ring), use_sudo=True)
     sudo('chown -R swift:swift /etc/swift')
 
 
@@ -161,22 +153,24 @@ def proxy_config():
 
 
 @runs_once
-def local_proxy(user="gis", passwd="uvicgis"):
-
-    local('export user='+user+' && export passwd='+passwd+' && '+swift_script_dir+'swift-pconfgen.sh')
+def local_proxy():
+    script = get_script_path('swift-pconfgen.sh')
+    local('export user=%s && export passwd=%s && %s' % (swift_user, swift_passwd, script))
 
 
 @parallel
 @roles('swift-proxies')
-def cluster_proxy(host_addr="www.google.com"):
+def cluster_proxy():
+
+    machine = machines[env.host_string]
+    ip = machine.ip
 
     sudo('mkdir -p /etc/swift')
     sudo('chmod a+w /etc/swift')
     put('/tmp/proxy-server.conf', '/etc/swift/proxy-server.conf')
    
     # get desired ip and put into config file 
-    put(swift_script_dir+'getmyip.py', '/tmp/getmyip.py')
-    sudo('perl -pi -e "s/0.0.0.0/`python /tmp/getmyip.py '+host_addr+'`/" /etc/swift/proxy-server.conf')
+    sudo('perl -pi -e "s/0.0.0.0/%s/" /etc/swift/proxy-server.conf' % (ip))
     sudo('perl -pi -e "s/-l 127.0.0.1/-l 0.0.0.0/" /etc/memcached.conf')
     sudo('service memcached restart')
     sudo('chown -R swift:swift /etc/swift')
@@ -186,25 +180,44 @@ def cluster_proxy(host_addr="www.google.com"):
 
 def storage_config():
     execute(storage_config_gen)
-    execute(cluster_storage)
+    execute(rsync_config_gen)
     execute(cluster_object_exp)
-
-
-# we want this to be the complete path to the file system swift 
-#  will use when we append, the 'dev' that is contained in the rings.
-#  in the default case 'dev' holds swiftfs, and /srv/node/swiftfs is
-#  the file system we use!
-@runs_once
-def storage_config_gen(fs_path="/srv/node", max_conn=6):
-  
-    local('export fspath='+fs_path+'; export maxconn='+str(max_conn)+'; '+swift_script_dir+'swift-rsync.sh')
-    local(swift_script_dir+'swift-ringconfig.sh')
-    local(swift_script_dir+'swift-objexpconfig.sh')
+    execute(cluster_storage)
 
 
 @parallel
 @roles('swift-workers')
-def cluster_storage(host_addr="www.google.com", swiftfs_path="/srv/node/swiftfs"):
+def rsync_config_gen():
+
+    machine = machines[env.host_string]
+    fs_path = os.path.dirname(machine.mntpt)
+    ip = machine.ip
+
+    put(get_script_path('swift-rsync.sh'), '/tmp')
+    sudo('chmod +x /tmp/swift-rsync.sh')
+    run('export fspath=%s; export maxconn=%s; /tmp/swift-rsync.sh' % (fs_path, machine.rsync_maxconn))
+    sudo('mv /tmp/rsyncd.conf /etc/')
+    # enable the rsync daemon
+    sudo('perl -pi -e "s/RSYNC_ENABLE=false/RSYNC_ENABLE=true/" /etc/default/rsync')
+    sudo('perl -pi -e "s/0.0.0.0/%s/" /etc/rsyncd.conf' % (ip))
+    sudo('service rsync start')
+
+
+@runs_once
+def storage_config_gen():
+
+    local(get_script_path('swift-ringconfig.sh'))
+    local(get_script_path('swift-objexpconfig.sh'))
+
+
+
+@parallel
+@roles('swift-workers')
+def cluster_storage():
+
+    machine = machines[env.host_string]
+    swiftfs_path = machine.mntpt
+    ip = machine.ip
 
     sudo('rm -rf /etc/swift/account-server.conf /etc/swift/container-server.conf /etc/swift/object-server.conf')
 
@@ -214,28 +227,27 @@ def cluster_storage(host_addr="www.google.com", swiftfs_path="/srv/node/swiftfs"
     put('/tmp/account-server.conf', '/etc/swift/')
     put('/tmp/container-server.conf', '/etc/swift/')
     put('/tmp/object-server.conf', '/etc/swift/')
-    put(swift_script_dir+'getmyip.py', '/tmp/getmyip.py')
-    sudo('perl -pi -e "s/0.0.0.0/`python /tmp/getmyip.py '+host_addr+'`/" /etc/swift/*-server.conf')
 
-    # enable the rsync daemon
-    put('/tmp/rsyncd.conf', '/etc/', use_sudo=True)
-    sudo('perl -pi -e "s/RSYNC_ENABLE=false/RSYNC_ENABLE=true/" /etc/default/rsync')
-    sudo('perl -pi -e "s/0.0.0.0/`python /tmp/getmyip.py '+host_addr+'`/" /etc/rsyncd.conf')
-    sudo('service rsync start')
+    sudo('perl -pi -e "s/0.0.0.0/%s/" /etc/swift/*-server.conf' % (ip))
 
-    sudo('chown swift:swift '+swiftfs_path)
+    sudo('chown swift:swift %s' % swiftfs_path)
     sudo('chown -R swift:swift /etc/swift')
     sudo('swift-init all start') # starts every swift process that has a config file
 
 
+
+@parallel
 @roles('swift-object-expirer')
-def cluster_object_exp(swiftfs_path="/srv/node/swiftfs"):
+def cluster_object_exp():
+
+    machine = machines[env.host_string]
+    swiftfs_path = machine.mntpt
 
     put('/tmp/object-expirer.conf', '/etc/swift')
 
-    sudo('chown swift:swift '+swiftfs_path)
+    sudo('chown swift:swift %s' % swiftfs_path)
     sudo('chown -R swift:swift /etc/swift')
-    sudo('swift-init all restart') # starts every swift process that has a config file
+    sudo('swift-init object-expirer start')
 
 
 
@@ -252,7 +264,7 @@ def cluster_keygen():
 def local_keygen():
 
     # we probably want to back up the file this generates somewhere!
-    local(swift_script_dir+'swift-keygen.sh')
+    local(get_script_path('swift-keygen.sh'))
 
 
 @parallel
@@ -267,24 +279,26 @@ def distribute_key():
 
 
 
-# Sets up a 50GB loopback filesystem at /srv/node/swiftfs
-#  Makes the actual loopback file in /srv/
+# Sets up a 'machine.dev_size' size loopback filesystem at 'machine.mntpt'
+#  Makes the actual loopback file in 'machine.dev_path' called 'machine.dev'
 #  The mountpoint and disksize can be changed, but 
 @parallel
-@roles('swift-workers')
-def setup_loop_device(disksize=50*1000000, mntpt="/srv/node/swiftfs"):
+@roles('loopback-machines')
+def setup_loop_device():
 
-    dev = "swiftdisk"
-    devpath = "/srv/"+dev
+    machine = machines[env.host_string]
+    devpath = os.path.join(machine.dev_path, machine.dev)
+    disksize = machine.dev_size
+    mntpt = machine.mntpt
 
-    sudo('mkdir -p /srv')
-    sudo('dd if=/dev/zero of='+devpath+' bs=1024 count=0 seek='+str(disksize))
-    sudo('mkfs.xfs -i size=1024 '+devpath)
-    sudo('echo "'+devpath+' '+mntpt+' xfs loop,noatime,nodiratime,nobarrier,logbufs=8 0 0" >> /etc/fstab')
+    sudo('mkdir -p %' % (machine.dev_path))
+    sudo('dd if=/dev/zero of=%s bs=1024 count=0 seek=%s' % (devpath, disksize))
+    sudo('mkfs.xfs -i size=1024 %s' % (devpath))
+    sudo('echo "%s %s xfs loop,noatime,nodiratime,nobarrier,logbufs=8 0 0" >> /etc/fstab' % (devpath, mntpt))
 
-    sudo('mkdir -p '+mntpt)
-    sudo('mount '+mntpt)
-    sudo('chown -R swift:swift '+mntpt)
+    sudo('mkdir -p %s' % (mntpt))
+    sudo('mount %s' % (mntpt))
+    sudo('chown -R swift:swift %s' % (mntpt))
 
 
 
@@ -308,7 +322,7 @@ def install_swift_deps():
 
 # This will create the users swift and memcache, 
 #  these users should be created when swift and memcached
-#  are installed. I reccomend you reinstall swift and memcached
+#  are installed. I recommend you reinstall swift and memcached
 #  if the users are not present before running this function
 def create_users():
     execute(create_swift_user)
@@ -333,19 +347,6 @@ def clean_files(files="proxy-server.conf"):
 
 
 
-@parallel
-@roles('swift-cluster')
-def test_ips():
-    put(swift_script_dir+'getmyip.py', '/tmp/')
-    run('python /tmp/getmyip.py')
-    
-
-@parallel
-@roles('swift-proxies')
-def test_memcached():
-    put(swift_script_dir+'getmyip.py', '/tmp/')
-    put(swift_script_dir+'memcachedtest.py', '/tmp/')
-    run('python /tmp/memcachedtest.py')
 
 
 @parallel
@@ -365,24 +366,52 @@ def swift_restart():
     sudo('swift-init all restart')
 
 
+@parallel
+@roles('swift-cluster')
+def swift_stop():
+    sudo('swift-init all stop')
+
+
+def get_os_type():
+
+    put(get_script_path('getmyos.py'), '/tmp/getmyos.py')
+
+
+@roles('boss')
+def test_proxies():
+    for proxy in swift_proxies:
+        run('swift -A http://%s:8080/auth/v1.0 -U system:%s -K %s stat' % (proxy, swift_user, swift_passwd))
+
+
+@roles('swift-cluster')
+def test_ips():
+    put(get_script_path('getmyip.py'), '/tmp/')
+    run('python /tmp/getmyip.py')
+    
+
+@roles('swift-proxies')
+def test_memcached():
+    put(get_script_path('getmyip.py'), '/tmp/')
+    put(get_script_path('memcachedtest.py'), '/tmp/')
+    run('python /tmp/memcachedtest.py')
+
 
 # this is the main install function, it can be run multiple times
 #  but the device setup should only be run once (and only if we 
 #  want to use a loopback device).
-def swift_install(check_shell=True, setup_device=True):
+def swift_install():
     
-    print "\n\n\t Beginning swift installation"
+    print "\n\n==========Beginning swift installation==========="
     print "machines in cluster:", swift_cluster
     print "proxy machines:", swift_proxies
     print "worker machines:", swift_workers
-    print "setup loopback file system: ", setup_device
+    print "setup loopback file system on:", loopback_machines
     print "\n\n"
 
     if (check_shell):
         execute(check_login_shell)
     execute(install_swift_deps)
-    if (setup_device):
-        execute(setup_loop_device)
+    execute(setup_loop_device)
     execute(cluster_keygen)
     execute(cluster_rings)
     execute(proxy_config)

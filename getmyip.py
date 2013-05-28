@@ -2,7 +2,6 @@ import socket
 import sys
 
 
-
 def getmyip(host="www.google.com"):
 
     conn = socket.create_connection((host, 80))
