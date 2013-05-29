@@ -1,4 +1,4 @@
-#! /bin/bash
+#! /usr/bin/env bash
 
 # generates a proxy server config file
 #  expects $user and $passwd to be defined

@@ -10,10 +10,9 @@ from settings import *
 #  Most of the config files and the rings are built on the local
 #  machine. make sure swift is installed there!
 #
-#  Swift requires an xfs partition to use, this will set up 500GB
+#  Swift requires an xfs partition to use. If asked this will set up 500GB
 #  a loopback device and mount it at /srv/node/swiftfs. 
-#  You can stop this by passing setup_device=False to
-#  swift_install (note this will NOT fail if you have less than 500GB available!!)
+#  (note this will NOT fail if you have less than 500GB available!!)
 #
 #  Be sure to check the filesystem size, mountpoint and such!
 #  The mountpoint is used in the rsyncd.config file as well as setting up the 
@@ -291,7 +290,7 @@ def setup_loop_device():
     disksize = machine.dev_size
     mntpt = machine.mntpt
 
-    sudo('mkdir -p %' % (machine.dev_path))
+    sudo('mkdir -p %s' % (machine.dev_path))
     sudo('dd if=/dev/zero of=%s bs=1024 count=0 seek=%s' % (devpath, disksize))
     sudo('mkfs.xfs -i size=1024 %s' % (devpath))
     sudo('echo "%s %s xfs loop,noatime,nodiratime,nobarrier,logbufs=8 0 0" >> /etc/fstab' % (devpath, mntpt))
@@ -300,6 +299,26 @@ def setup_loop_device():
     sudo('mount %s' % (mntpt))
     sudo('chown -R swift:swift %s' % (mntpt))
 
+
+
+def setup_logging():
+    execute(log_config_gen)
+    execute(cluster_logging)
+
+
+@runs_once
+def log_config_gen():
+    local(get_script_path('swift-logging.sh'))
+
+
+@parallel
+@roles('swift-cluster')
+def cluster_logging():
+    put('/tmp/swiftlog.conf', '/etc/rsyslog.d/swift.conf', use_sudo=True)
+    put('/tmp/swiftrotate.conf', '/etc/logrotate.d/swift', use_sudo=True)
+    sudo('chown root:root /etc/rsyslog.d/swift.conf')
+    sudo('chown root:root /etc/logrotate.d/swift')
+    sudo('service rsyslog restart')
 
 
 
@@ -394,6 +413,9 @@ def test_memcached():
     put(get_script_path('getmyip.py'), '/tmp/')
     put(get_script_path('memcachedtest.py'), '/tmp/')
     run('python /tmp/memcachedtest.py')
+
+
+
 
 
 # this is the main install function, it can be run multiple times

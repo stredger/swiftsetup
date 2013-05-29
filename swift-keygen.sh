@@ -1,4 +1,4 @@
-#! /bin/bash
+#! /usr/bin/env bash
 
 # generates a key for a swift cluster to use.
 #  This key must be in the file /etc/swift/swift.conf

@@ -1,4 +1,4 @@
-#! /bin/bash
+#! /usr/bin/env bash
 
 
 # create rsyncd config file
