@@ -5,7 +5,7 @@ import machinedef
 
 #==================== Machines, Keys, Passwords ========================#
 
-msuffix1 = ".hdoop.vikelab.emulab.net"
+
 keyfile = "~/.ssh/st_rsa"
 passwd = "STE!@#!!"
 
@@ -28,6 +28,7 @@ passwd = "STE!@#!!"
 # mntpt='/srv/node/swiftfs', # where our swift filesystem will be
 # rsync_maxconn=6 # max connections for rsync to handle (used to move files)
 
+msuffix1 = ".hdoop.vikelab.emulab.net"
 # dictionary of hostname:Machine
 machines = {
     "alpha" + msuffix1 : machinedef.Machine("alpha" + msuffix1,
@@ -53,7 +54,30 @@ machines = {
                                              password=passwd),
     }
 
-
+msuffix = ".uvic.trans-cloud.net"
+k = "~./ssh/st_rsa"
+passwd = machinedef.prompt_for_password()
+machines = {
+    "grack01" + msuffix : machinedef.Machine("grack01" + msuffix,
+                                             key=k,
+                                             proxy=True,
+                                             boss=True),
+    "grack02" + msuffix : machinedef.Machine("grack02" + msuffix,
+                                             key=k,
+                                             worker=True,
+                                             proxy=True),
+    "grack03" + msuffix : machinedef.Machine("grack03" + msuffix,
+                                             key=k,
+                                             worker=True),
+    "grack04" + msuffix : machinedef.Machine("grack04" + msuffix,
+                                             key=k,
+                                             worker=True),
+    "grack06" + msuffix : machinedef.Machine("grack06" + msuffix,
+                                             key=k,
+                                             worker=True,
+                                             obj_exp=True)
+ 
+    }
 
 #==================== Script Variables ========================#
 

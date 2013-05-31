@@ -1,8 +1,13 @@
 
 import socket as soc
+import getpass
 
 def get_ip(host):
     return soc.gethostbyname(host)
+
+
+def prompt_for_password():
+    return getpass.getpass()
 
 
 def generate_roles(machines):
@@ -15,16 +20,11 @@ def generate_roles(machines):
 
     for hostname, machine in machines.items():
         cluster.append(machine.hostname)
-        if machine.worker:
-            worker.append(machine.hostname)
-        if machine.proxy:
-            proxy.append(machine.hostname)
-        if boss is None and machine.boss: # only want one boss
-            boss = machine.hostname
-        if machine.obj_exp:
-            obj_exp.append(machine.hostname)
-        if machine.dev_setup:
-            loopbacks.append(machine.hostname)
+        if machine.worker: worker.append(machine.hostname)
+        if machine.proxy: proxy.append(machine.hostname)
+        if boss is None and machine.boss: boss = machine.hostname
+        if machine.obj_exp: obj_exp.append(machine.hostname)
+        if machine.dev_setup: loopbacks.append(machine.hostname)
 
     return cluster, worker, proxy, [boss], obj_exp, loopbacks
 
@@ -49,10 +49,7 @@ class Machine():
                  ):
 
         self.hostname = hostname
-        if ip is None:
-            self.ip = get_ip(hostname)
-        else:
-            self.ip = ip
+        self.ip = ip if ip is not None else get_ip(hostname)
         self.key=key
         self.passwd = password
         self.worker = worker

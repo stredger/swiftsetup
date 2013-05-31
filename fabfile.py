@@ -244,7 +244,6 @@ def cluster_object_exp():
 
     put('/tmp/object-expirer.conf', '/etc/swift')
 
-    sudo('chown swift:swift %s' % swiftfs_path)
     sudo('chown -R swift:swift /etc/swift')
     sudo('swift-init object-expirer start')
 
