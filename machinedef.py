@@ -34,6 +34,7 @@ class Machine():
     def __init__(self,
                  hostname, # the only required arg, hostname of the machine
                  ip=None, # ip to use, if None will try to get the public ip
+                 mtype='ubuntu', # string to say machine type
                  key="~/.ssh/id_rsa", # ssh keyfile to use #CURRENTLY IGNORED
                  password="", # ssh password to use #CURRENTLY IGNORED
                  worker=False, # if True we will be used to store stuff
@@ -43,14 +44,17 @@ class Machine():
                  dev_setup=False, # if True we want to make a loopback file
                  dev='swiftdisk', # name of our loopback file
                  dev_path='/srv/', # path to where our loopback file will be
-                 dev_size=50*100000, # size of our swift filesystem
+                 dev_size=25*1024, # size of our swift filesystem in KB, 25MB is around the MIN size
                  mntpt='/srv/node/swiftfs', # where our swift filesystem will be
-                 rsync_maxconn=6 # max connections for rsync to handle (used to move files)
+                 rsync_maxconn=6, # max connections for rsync to handle (used to move files)
+                 makeSwiftUser=True,
+                 makeMemcachedUser=False
                  ):
 
         self.hostname = hostname
         self.ip = ip if ip is not None else get_ip(hostname)
-        self.key=key
+        self.type = mtype
+        self.key = key
         self.passwd = password
         self.worker = worker
         self.proxy = proxy
@@ -62,5 +66,6 @@ class Machine():
         self.dev_size = dev_size # size in bytes
         self.mntpt = mntpt
         self.rsync_maxconn = rsync_maxconn
-        
+        self.makeSwiftUser = makeSwiftUser
+        self.makeMemcachedUser = makeMemcachedUser
 

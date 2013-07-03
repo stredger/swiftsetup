@@ -79,6 +79,34 @@ machines = {
  
     }
 
+
+machines = {"pantera.cs.uvic.ca": machinedef.Machine("pantera.cs.uvic.ca", key=k, password=passwd, proxy=True, boss=True, worker=True, obj_exp=True, dev_setup=True) }
+
+machines = {
+    "fed.swifty.vikelab.emulab.net": machinedef.Machine("fed.swifty.vikelab.emulab.net",
+                                                        key=k,
+                                                        password=passwd,
+                                                        mtype='fedora',
+                                                        proxy=True,
+                                                        boss=True,
+                                                        worker=True,
+                                                        obj_exp=True,
+                                                        dev_setup=True),
+    "ub1.swifty.vikelab.emulab.net": machinedef.Machine("ub1.swifty.vikelab.emulab.net",
+                                                        key=k,
+                                                        password=passwd,
+                                                        worker=True,
+                                                        dev_setup=True),
+    "ub2.swifty.vikelab.emulab.net": machinedef.Machine("ub2.swifty.vikelab.emulab.net",
+                                                        key=k,
+                                                        password=passwd,
+                                                        worker=True,
+                                                        dev_setup=True),
+
+
+    }
+
+
 #==================== Script Variables ========================#
 
 # This is where all our helper scripts should be!
@@ -87,11 +115,11 @@ swift_script_dir = "./"
 # Should we check the shell of each machine is bash?
 check_shell = True
 
-# user for swift
-swift_user = 'gis'
+# superuser for swift
+swift_user = 'megauser' # 'gis'
 
 # password for swift
-swift_passwd = 'uvicgis'
+swift_passwd = 'stepheniscool' # 'uvicgis'
 
 # this host will be connected to so a host
 #  can get its own ip
