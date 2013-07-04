@@ -93,7 +93,7 @@ def create_rings():
         dev = os.path.split(m.mntpt)[1]
         # make an entry for machine m in each builder b at port p 
         for b, p in [(builders[n],ports[n]) for n in xrange(len(builders))]:
-            run('swift-ring-builder %s add r%sz%s-%s:%s/%s %s' % (region, b, zone, ip, p, dev, weight))
+            run('swift-ring-builder %s add r%sz%s-%s:%s/%s %s' % (b, region, zone, ip, p, dev, weight))
         zone += 1
 
     # distribute the partitions evenly across the nodes
@@ -341,15 +341,16 @@ def install_swift():
     if machine.type == 'ubuntu':
         with settings(warn_only=True):
             sudo('apt-get update')
-        sudo('apt-get -y --force-yes install openssh-server memcached curl gcc git-core python-configobj python-coverage python-dev python-nose python-setuptools python-simplejson python-xattr sqlite3 xfsprogs python-webob python-eventlet python-greenlet python-pastedeploy python-netifaces')
+        sudo('apt-get -y --force-yes install memcached git-core xfsprogs rsync python-configobj python-coverage python-nose python-setuptools python-simplejson python-xattr python-webob python-eventlet python-greenlet python-netifaces') # python-pastedeploy
     elif machine.type == 'fedora':
-        sudo('yum -y install git memcached xinetd rsync python-netifaces python-nose python-mock python-dns xfsprogs python-setuptools python-simplejson')
+        sudo('yum -y install git memcached xinetd rsync xfsprogs python-netifaces python-nose python-mock python-dns python-setuptools python-simplejson')
 
     # get the swift code, checkout v1.9.0 and install it
-    run('git clone https://github.com/openstack/swift.git')
-    with cd('~/swift'):
-        run('git checkout 1.9.0 -b v1.9.0')
-        sudo('python setup.py install')
+    with cd('/tmp'):
+        run('git clone https://github.com/openstack/swift.git')
+        with cd('swift'):
+            run('git checkout 1.9.0 -b v1.9.0')
+            sudo('python setup.py install')
 
 
 
@@ -435,13 +436,27 @@ def test_memcached():
     run('python /tmp/memcachedtest.py')
 
 
-
-
 @parallel
 @roles('swift-cluster')
 def clean_files(files="proxy-server.conf"):
     sudo('rm -rf '+files)
 
+
+@parallel
+@roles('swift-cluster')
+def fix_pastedeploy_install():
+    with settings(warn_only=True):
+        sudo('easy_install pip')
+        sudo('pip uninstall -y PasteDeploy ')
+        sudo('pip install PasteDeploy')
+
+
+
+@parallel
+@roles('swift-cluster')
+def increase_networking_capabilities():
+    sudo("sed '$ a\\nnet.ipv4.tcp_tw_recycle=1\nnet.ipv4.tcp_tw_reuse=1\nnet.ipv4.netfilter.ip_conntrack_max = 262144' /etc/sysctl.conf")
+    sudo('sysctl -p')
 
 
 # this is the main install function, it can be run multiple times
