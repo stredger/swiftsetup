@@ -4,6 +4,8 @@ import machinedef
 import os
 
 
+# TODO: Checks so these variables cant screw us?
+
 
 #==================== Script Variables ========================#
 
@@ -21,25 +23,25 @@ swift_passwd = 'stepheniscool' # 'uvicgis'
 
 # this host will be connected to so a host
 #  can get its own ip
-host_to_check_ip = "www.google.com"
+host_to_check_ip = 'www.google.com'
 
 # should be swauth or tempauth
 authtype = 'swauth'
 
 # where we will generate rings and builders and such on the boss machine
-#  be sure to leave off the trailing / if its /etc/swift !!
 bossworkingdir = '/etc/swift'
 
 # where we will generate temp files and such on the local machine
 localworkingdir = '/tmp'
 
-
+# the replication factor in the cluster
+repfactor = 3
 
 
 #==================== Machines, Keys, Passwords ========================#
 
 
-keyfile = "~/.ssh/st_rsa"
+keyfile = '~/.ssh/st_rsa'
 passwd = None
 
 
@@ -63,8 +65,8 @@ passwd = None
 # rsync_maxconn=6, # max connections for rsync to handle (used to move files)
 # makeSwiftUser=True,
 # makeMemcachedUser=False,
-# sshPort=None, # if these are set then fabrics en.host_string will 
-# sshUser=None  #  return the ssh command like user@host:port (which we want)
+# sshport=None, # if these are set then fabrics en.host_string will 
+# sshuser=None  #  return the ssh command like user@host:port (which we want)
 
 
 # msuffix1 = ".hdoop.vikelab.emulab.net"
@@ -98,17 +100,15 @@ passwd = None
 
 # ubuntu
 msuffix = "pc3.utah.geniracks.net"
-utahInsta = {
+utahinsta = {
     msuffix+":32570" : machinedef.Machine(msuffix,
-                                          sshPort=32570,
-                                          #key=k,
+                                          sshport=32570,
                                           privip='10.10.1.3',
                                           proxy=True,
                                           boss=True,
                                           ),
     msuffix+":32571" : machinedef.Machine(msuffix,
-                                          sshPort=32571,
-                                          #key=k,
+                                          sshport=32571,
                                           privip='10.10.1.2',
                                           worker=True,
                                           objexp=True,
@@ -116,16 +116,14 @@ utahInsta = {
                                           dev_size=2*1024*1024
                                           ),
     msuffix+":32572" : machinedef.Machine(msuffix,
-                                          sshPort=32572,
-                                          #key=k,
+                                          sshport=32572,
                                           privip='10.10.1.1',
                                           worker=True,
                                           dev_setup=True,
                                           dev_size=2*1024*1024
                                           ),
     msuffix+":32573" : machinedef.Machine(msuffix,
-                                          sshPort=32573,
-                                          #key=k,
+                                          sshport=32573,
                                           privip='10.10.1.4',
                                           worker=True,
                                           dev_setup=True,
@@ -136,22 +134,34 @@ utahInsta = {
 
 # ubuntu
 msuffix = "pc508.emulab.net"
-utahEmu = {
+utahemu = {
     msuffix+":31290" : machinedef.Machine(msuffix,
-                                          sshPort=31290,
-                                          #key=k
+                                          sshport=31290,
+                                          privip='10.10.1.1',
+                                          proxy=True,
+                                          boss=True
                                           ),
     msuffix+":31291" : machinedef.Machine(msuffix,
-                                          sshPort=31291,
-                                          #key=k
+                                          sshport=31291,
+                                          privip='10.10.1.2',
+                                          worker=True,
+                                          objexp=True,
+                                          dev_setup=True,
+                                          dev_size=2*1024*1024
                                           ),
     msuffix+":31292" : machinedef.Machine(msuffix,
-                                          sshPort=31292,
-                                          #key=k
+                                          sshport=31292,
+                                          privip='10.10.1.3',
+                                          worker=True,
+                                          dev_setup=True,
+                                          dev_size=2*1024*1024
                                           ),
     msuffix+":31293" : machinedef.Machine(msuffix,
-                                          sshPort=31293,
-                                          #key=k
+                                          sshport=31293,
+                                          privip='10.10.1.4',
+                                          worker=True,
+                                          dev_setup=True,
+                                          dev_size=2*1024*1024
                                           ),
     }
 
@@ -160,20 +170,16 @@ utahEmu = {
 msuffix = "pc1.instageni.gpolab.bbn.com"
 gpo = {
     msuffix+":33338" : machinedef.Machine(msuffix,
-                                          sshPort=33338,
-                                          #key=k,
+                                          sshport=33338,
                                           mtype='fedora',),
     msuffix+":33339" : machinedef.Machine(msuffix,
-                                          sshPort=33339,
-                                          #key=k,
+                                          sshport=33339,
                                           mtype='fedora',),
     msuffix+":33340" : machinedef.Machine(msuffix,
-                                          sshPort=33340,
-                                          #key=k,
+                                          sshport=33340,
                                           mtype='fedora',),
     msuffix+":33341" : machinedef.Machine(msuffix,
-                                          sshPort=33341,
-                                          #key=k,
+                                          sshport=33341,
                                           mtype='fedora',)
 }
 
@@ -182,21 +188,16 @@ gpo = {
 msuffix = ".uvic.trans-cloud.net"
 uvic = {
     "grack01" + msuffix : machinedef.Machine("grack01" + msuffix,
-                                             #key=k,
                                              proxy=True,
                                              boss=True),
     "grack02" + msuffix : machinedef.Machine("grack02" + msuffix,
-                                             #key=k,
                                              worker=True,
                                              proxy=True),
     "grack03" + msuffix : machinedef.Machine("grack03" + msuffix,
-                                             #key=k,
                                              worker=True),
     "grack04" + msuffix : machinedef.Machine("grack04" + msuffix,
-                                             #key=k,
                                              worker=True),
     "grack06" + msuffix : machinedef.Machine("grack06" + msuffix,
-                                             #key=k,
                                              worker=True,
                                              objexp=True)
     }
@@ -205,11 +206,11 @@ uvic = {
 
 
 
-machines = utahInsta
+machines = utahemu
 #machines.update(utahInsta)
 
 
 
 # Auto generate hostname lists for the fabric roles
 swift_cluster,swift_workers,swift_proxies,boss, \
-    swift_object_exp,loopback_machines = machinedef.generateRoles(machines)
+    swift_object_exp,loopback_machines = machinedef.generate_roles(machines)

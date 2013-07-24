@@ -6,11 +6,11 @@ def getip(host):
     return soc.gethostbyname(host)
 
 
-def promptForPassword():
+def prompt_for_password():
     return getpass.getpass()
 
 
-def generateRoles(machines):
+def generate_roles(machines):
     cluster = []
     worker = []
     proxy = []
@@ -18,20 +18,20 @@ def generateRoles(machines):
     objexp = []
     loopbacks = []
 
-    def genFabHoststring(machine):
+    def gen_fab_hoststring(machine):
         s = ""
-        if machine.sshUser is not None: s += "%s@" % (machine.user)
+        if machine.sshuser is not None: s += "%s@" % (machine.sshuser)
         s += machine.hostname
-        if machine.sshPort is not None: s += ":%s" % (machine.sshPort)
+        if machine.sshport is not None: s += ":%s" % (machine.sshport)
         return s
 
     for hostname, machine in machines.items():
-        cluster.append(genFabHoststring(machine))
-        if machine.worker: worker.append(genFabHoststring(machine))
-        if machine.proxy: proxy.append(genFabHoststring(machine))
-        if boss is None and machine.boss: boss = genFabHoststring(machine)
-        if machine.objexp: objexp.append(genFabHoststring(machine))
-        if machine.dev_setup: loopbacks.append(genFabHoststring(machine))
+        cluster.append(gen_fab_hoststring(machine))
+        if machine.worker: worker.append(gen_fab_hoststring(machine))
+        if machine.proxy: proxy.append(gen_fab_hoststring(machine))
+        if boss is None and machine.boss: boss = gen_fab_hoststring(machine)
+        if machine.objexp: objexp.append(gen_fab_hoststring(machine))
+        if machine.dev_setup: loopbacks.append(gen_fab_hoststring(machine))
 
     return cluster, worker, proxy, [boss], objexp, loopbacks
 
@@ -57,9 +57,8 @@ class Machine():
                  rsync_maxconn=6, # max connections for rsync to handle (used to move files)
                  makeSwiftUser=True,
                  makeMemcachedUser=False,
-                 sshPort=None, # if these are set then fabrics en.host_string will 
-                 sshUser=None, #  return the ssh command like user@host:port (which we want)
-                 repNum=3,
+                 sshport=None, # if these are set then fabrics en.host_string will 
+                 sshuser=None, #  return the ssh command like user@host:port (which we want)
                  ):
 
         self.hostname = hostname
@@ -80,6 +79,5 @@ class Machine():
         self.rsync_maxconn = rsync_maxconn
         self.makeSwiftUser = makeSwiftUser
         self.makeMemcachedUser = makeMemcachedUser
-        self.sshPort = str(sshPort)
-        self.sshUser = sshUser
-        self.repNum = repNum
+        self.sshport = str(sshport)
+        self.sshuser = sshuser

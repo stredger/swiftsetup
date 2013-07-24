@@ -2,7 +2,6 @@
 
 
 # create rsyncd config file
-# the variables $fspath and $maxconn
 
 cat > rsyncd.conf <<EOF
 uid = swift
@@ -12,20 +11,20 @@ pid file = /var/run/rsyncd.pid
 address = 0.0.0.0
 
 [account]
-max connections = $maxconn
-path = $fspath
+max connections = MAXCONN
+path = SWIFTFSPATH
 read only = false
 lock file = /var/lock/account.lock
 
 [container]
-max connections = $maxconn
-path = $fspath
+max connections = MAXCONN
+path = SWIFTFSPATH
 read only = false
 lock file = /var/lock/container.lock
 
 [object]
-max connections = $maxconn
-path = $fspath
+max connections = MAXCONN
+path = SWIFTFSPATH
 read only = false
 lock file = /var/lock/object.lock
 EOF
