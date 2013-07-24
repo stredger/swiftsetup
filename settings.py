@@ -1,6 +1,39 @@
 
 
 import machinedef
+import os
+
+
+
+#==================== Script Variables ========================#
+
+# This is where all our helper scripts should be!
+swift_script_dir = os.getcwd()
+
+# Should we check the shell of each machine is bash?
+check_shell = True
+
+# superuser for swift
+swift_user = 'megauser' # 'gis'
+
+# password for swift
+swift_passwd = 'stepheniscool' # 'uvicgis'
+
+# this host will be connected to so a host
+#  can get its own ip
+host_to_check_ip = "www.google.com"
+
+# should be swauth or tempauth
+authtype = 'swauth'
+
+# where we will generate rings and builders and such on the boss machine
+#  be sure to leave off the trailing / if its /etc/swift !!
+bossworkingdir = '/etc/swift'
+
+# where we will generate temp files and such on the local machine
+localworkingdir = '/tmp'
+
+
 
 
 #==================== Machines, Keys, Passwords ========================#
@@ -8,7 +41,8 @@ import machinedef
 
 keyfile = "~/.ssh/st_rsa"
 passwd = None
-authtype = 'swauth' # should be swauth or tempauth
+
+
 
 # ## The Machine() object is defined as follows: ##
 #
@@ -173,24 +207,6 @@ uvic = {
 
 machines = utahInsta
 #machines.update(utahInsta)
-
-#==================== Script Variables ========================#
-
-# This is where all our helper scripts should be!
-swift_script_dir = "./"
-
-# Should we check the shell of each machine is bash?
-check_shell = True
-
-# superuser for swift
-swift_user = 'megauser' # 'gis'
-
-# password for swift
-swift_passwd = 'stepheniscool' # 'uvicgis'
-
-# this host will be connected to so a host
-#  can get its own ip
-host_to_check_ip = "www.google.com"
 
 
 

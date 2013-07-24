@@ -85,53 +85,57 @@ def create_rings():
 
     worker_machines = [machines[m] for m in swift_workers]
 
-    # maybe have a place to cd to and build these files?
-    for b in builders:
-        run('swift-ring-builder %s create %s %s %s' % (b, partpower, repfactor, movetime))
+    sudo('chmod +wr %s', bossworkingdir)
+    with cd(bossworkingdir):
+        for b in builders:
+            run('swift-ring-builder %s create %s %s %s' 
+                % (b, partpower, repfactor, movetime))
 
-    zone = 0 # should be unique for each ip
-    for m in worker_machines:
-        ip = m.privip
-        dev = os.path.split(m.mntpt)[1]
-        # make an entry for machine m in each builder b at port p 
-        for b, p in [(builders[n],ports[n]) for n in xrange(len(builders))]:
-            run('swift-ring-builder %s add r%sz%s-%s:%s/%s %s' % (b, region, zone, ip, p, dev, weight))
-        zone += 1
+            zone = 0 # should be unique for each ip
+            for m in worker_machines:
+                ip = m.privip
+                dev = os.path.split(m.mntpt)[1]
+            
+            # make an entry for machine m in each builder b at port p 
+            for b, p in [(builders[n],ports[n]) for n in xrange(len(builders))]:
+                run('swift-ring-builder %s add r%sz%s-%s:%s/%s %s' 
+                    % (b, region, zone, ip, p, dev, weight))
+                zone += 1
+                    
+        # distribute the partitions evenly across the nodes
+        for b in builders:
+            run('swift-ring-builder %s rebalance' % b)
 
-    # distribute the partitions evenly across the nodes
-    for b in builders:
-        run('swift-ring-builder %s rebalance' % b)
+    # place the builders in /etc/swift so we have them somewhere safe
+    if bossworkingdir != '/etc/swift':
+        files = os.path.join(bossworkingdir, '*.builders')
+        rings = os.path.join(bossworkingdir, '*.ring.gz')
+        sudo('mv %s /etc/swift/' % builders)
+        sudo('mv %s /etc/swift/' % rings)
+        
 
 
 @runs_once
 @roles('boss')
 def get_rings():
-    ring_suff = '*.ring.gz'
-    builder_suff = '*.builder'
+    rings = os.path.join('/etc/swift', '*.ring.gz')
+    builders = os.path.join('/etc/swift', '*.builder')
 
-    get(ring_suff, '/tmp/')
-    get(builder_suff, '/tmp/')
+    get(rings, localworkingdir)
+    get(builders, localworkingdir)
 
 
 @parallel
 @roles('swift-cluster')
 def distribute_rings():
     
-    rings = ["account.ring.gz", "container.ring.gz", "object.ring.gz"]
+    rings = '*ring.gz' #["account.ring.gz", "container.ring.gz", "object.ring.gz"]
 
     sudo('mkdir -p /etc/swift')
     sudo('chmod a+w /etc/swift')
-    for ring in rings:
-        put(os.path.join('/tmp/',ring), os.path.join('/etc/swift/',ring), use_sudo=True)
+    #for ring in rings:
+    put(os.path.join(localworkingdir, rings), '/etc/swift/', use_sudo=True)
     sudo('chown -R swift:swift /etc/swift')
-
-
-@parallel
-@roles('boss')
-def distribute_builders():
-    sudo('mv /tmp/*.builder /etc/swift')
-    pass
-
 
 
 @parallel
@@ -154,8 +158,9 @@ def proxy_config():
 @runs_once
 def local_proxy():
     script = get_script_path('swift-pconfgen.sh')
-    local('export user=%s && export passwd=%s && export authtype=%s && %s' 
-          % (swift_user, swift_passwd, authtype, script))
+    with cd(localworkingdir):
+        local('export user=%s && export passwd=%s && export authtype=%s && %s' 
+              % (swift_user, swift_passwd, authtype, script))
 
 
 @parallel
@@ -164,7 +169,7 @@ def cluster_proxy():
 
     sudo('mkdir -p /etc/swift')
     sudo('chmod a+w /etc/swift')
-    put('/tmp/proxy-server.conf', '/etc/swift/proxy-server.conf')
+    put(os.path.join(localworkingdir, 'proxy-server.conf'), '/etc/swift/')
 
     # configure memcached
     if machine.type.lower() == 'ubuntu':
@@ -211,8 +216,9 @@ def rsync_config_gen():
 @runs_once
 def storage_config_gen():
 
-    local(get_script_path('swift-ringconfig.sh'))
-    local(get_script_path('swift-objexpconfig.sh'))
+    with cd(localworkingdir):
+        local(get_script_path('swift-ringconfig.sh'))
+        local(get_script_path('swift-objexpconfig.sh'))
 
 
 
@@ -229,9 +235,9 @@ def cluster_storage():
     # set up ring config files
     sudo('mkdir -p /etc/swift')
     sudo('chmod a+w /etc/swift')
-    put('/tmp/account-server.conf', '/etc/swift/')
-    put('/tmp/container-server.conf', '/etc/swift/')
-    put('/tmp/object-server.conf', '/etc/swift/')
+    put(os.path.join(localworkingdir, 'account-server.conf'), '/etc/swift/')
+    put(os.path.join(localworkingdir, 'container-server.conf'), '/etc/swift/')
+    put(os.path.join(localworkingdir, 'object-server.conf'), '/etc/swift/')
 
     sudo('perl -pi -e "s/0.0.0.0/%s/" /etc/swift/*-server.conf' % (ip))
 
@@ -245,7 +251,7 @@ def cluster_storage():
 @roles('swift-object-expirer')
 def cluster_object_exp():
 
-    put('/tmp/object-expirer.conf', '/etc/swift')
+    put(os.path.join(localworkingdir, 'object-expirer.conf'), '/etc/swift')
     sudo('chown -R swift:swift /etc/swift')
     sudo('swift-init object-expirer start')
 
@@ -264,7 +270,8 @@ def cluster_keygen():
 def local_keygen():
 
     # we probably want to back up the file this generates somewhere!
-    local(get_script_path('swift-keygen.sh'))
+    with cd(localworkingdir):
+        local(get_script_path('swift-keygen.sh'))
 
 
 @parallel
@@ -273,7 +280,7 @@ def distribute_key():
 
     sudo('mkdir -p /etc/swift')
     sudo('chmod a+w /etc/swift')
-    put('/tmp/swift.conf', '/etc/swift/swift.conf')
+    put(os.path.join(localworkingdir, 'swift.conf'), '/etc/swift/swift.conf')
     sudo('chown -R swift:swift /etc/swift')
     
 
@@ -309,14 +316,17 @@ def setup_logging():
 
 @runs_once
 def log_config_gen():
-    local(get_script_path('swift-logging.sh'))
+    with cd(localworkingdir):
+        local(get_script_path('swift-logging.sh'))
 
 
 @parallel
 @roles('swift-cluster')
 def cluster_logging():
-    put('/tmp/swiftlog.conf', '/etc/rsyslog.d/swift.conf', use_sudo=True)
-    put('/tmp/swiftrotate.conf', '/etc/logrotate.d/swift', use_sudo=True)
+    put(os.path.join(localworkingdir, 'swiftlog.conf'), 
+        '/etc/rsyslog.d/swift.conf', use_sudo=True)
+    put(os.path.join(localworkingdir, 'swiftrotate.conf'), 
+        '/etc/logrotate.d/swift', use_sudo=True)
     sudo('chown root:root /etc/rsyslog.d/swift.conf')
     sudo('chown root:root /etc/logrotate.d/swift')
     sudo('service rsyslog restart')
@@ -355,7 +365,7 @@ def install_swift_from_git():
             sudo('python setup.py install')
 
 @parallel
-@roles('swift-cluster'):
+@roles('swift-cluster')
 def install_swauth_from_git():
     # get the swauth code, checkout v1.0.8 and install it
     with cd('/tmp'):
