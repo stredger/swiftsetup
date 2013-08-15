@@ -21,8 +21,8 @@ from settings import *
 
 
 # TODO: docstrings...
-#       make rsync.conf like others
 #       get key and pass for each machine??
+#       make init conf thing
 
 env.roledefs = {
     'swift-cluster':swift_cluster,
@@ -46,7 +46,8 @@ def get_script_path(f):
 
 
 # Creates the ring files which are the heart (brain?) of the swift repo
-#  as they are the mapping of where files are to be placed!
+#  as they are the mapping to where a file gets placed! (basically imagine all
+#  the possible hash values as a ring. Then map sections of that ring to machines)
 # The ring files: "account.ring.gz", "container.ring.gz", "object.ring.gz"
 #  must be present in all machines in /etc/swift/ with the user swift having
 #  all premissions on them
@@ -160,14 +161,18 @@ def cluster_proxy():
 
     machine = machines[env.host_string]
 
+    # set the public ip for swauth to use
+    sudo('perl -pi -e "s/PUBIP/%s/" /etc/swift/proxy-server.conf' % (machine.pubip))
+
     # configure memcached
     if machine.type.lower() == 'ubuntu':
         sudo('perl -pi -e "s/-l 127.0.0.1/-l 0.0.0.0/" /etc/memcached.conf')
-        sudo('service memcached start')
+        #sudo('service memcached start')
     elif machine.type.lower() == 'fedora':
         sudo('perl -pi -e "s/OPTIONS=\"/OPTIONS=\"-l 0.0.0.0 /" /etc/sysconfig/memcached')
-        sudo('systemctl enable memcached.service && systemctl start memcached.service')
+        #sudo('systemctl enable memcached.service && systemctl start memcached.service')
 
+    sudo('service memcached start')
     sudo('chown -R swift:swift /etc/swift')
     sudo('swift-init proxy start')
 
@@ -213,7 +218,7 @@ def storage_config_gen():
           % (localworkingdir, get_script_path('swift-objexpconfig.sh')))
     local('cd %s && %s' 
           % (localworkingdir, get_script_path('swift-rsync.sh')))
-
+    
 
 
 @parallel
@@ -237,6 +242,9 @@ def cluster_storage():
         '/etc/swift/', use_sudo=True)
 
     sudo('perl -pi -e "s/0.0.0.0/%s/" /etc/swift/*-server.conf' % (ip))
+
+    if machine.uselocalfs:
+        sudo('perl -pi -e "s/mount_check=True/mount_check=False/" /etc/swift/*-server.conf')
 
     sudo('chown swift:swift %s' % swiftfs_path)
     sudo('chown -R swift:swift /etc/swift')
@@ -336,6 +344,14 @@ def clean_logs():
         sudo('rm /etc/swift/swift.log*')
         sudo('service rsyslog reload')
 
+@parallel
+@roles('swift-workers')
+def install_xattr_hack():
+    with cd('/tmp'):
+       with settings(warn_only=True):
+           run('git clone https://github.com/stredger/fake-xattr.git')
+       with cd('fake-xattr'):
+           sudo('python setup.py install')
 
 # installs our swift deployment
 @parallel
@@ -346,19 +362,33 @@ def install_dependencies():
     if machine.type == 'ubuntu':
         with settings(warn_only=True):
             sudo('apt-get update')
-        sudo('apt-get -y --force-yes install memcached git-core xfsprogs rsync python-configobj python-coverage python-nose python-setuptools python-simplejson python-xattr python-webob python-eventlet python-greenlet python-netifaces') # python-pastedeploy
+        sudo('apt-get -y --force-yes install libffi6 libffi-dev memcached git-core xfsprogs rsync python-configobj python-coverage python-nose python-setuptools python-simplejson python-xattr python-webob python-eventlet python-greenlet python-netifaces') # python-pastedeploy
     elif machine.type == 'fedora':
-        sudo('yum -y install git memcached xinetd rsync xfsprogs python-netifaces python-nose python-mock python-dns python-setuptools python-simplejson')
+        sudo('yum -y install git gcc libffi libffi-devel memcached xinetd rsync xfsprogs python-netifaces python-nose python-mock python-dns python-setuptools python-simplejson')
+
+    if machine.uselocalfs:
+        install_xattr_hack()
 
 
 @parallel
 @roles('swift-cluster')
 def install_swift_from_git():
    """ get swift from git, checkout v1.9.0 and install it """
+
+   machine = machines[env.host_string]
+
    with cd('/tmp'):
-       run('git clone https://github.com/openstack/swift.git')
+       with settings(warn_only=True):
+           run('git clone https://github.com/openstack/swift.git')
        with cd('swift'):
-           run('git checkout 1.9.0 -b v1.9.0')
+           with settings(warn_only=True):
+               run('git checkout 1.9.0 -b v1.9.0')
+
+               # for some reason we fail to install dependencies
+               #  the first time. Instead of figuring out the problem,
+               #  we are just going to try the install twice (which works)
+               sudo('python setup.py install')
+
            sudo('python setup.py install')
 
 @parallel
@@ -366,10 +396,18 @@ def install_swift_from_git():
 def install_swauth_from_git():
     """ get swauth from git, checkout v1.0.8 and install it """
     with cd('/tmp'):
-        run('git clone https://github.com/gholt/swauth.git')
+        with settings(warn_only=True):
+            run('git clone https://github.com/gholt/swauth.git')
         with cd('swauth'):
-            run('git checkout 1.0.8 -b 1.0.8')
+            with settings(warn_only=True):
+                run('git checkout 1.0.8 -b 1.0.8')
             sudo('python setup.py install')
+
+
+@runs_once
+@roles('swift-proxies')
+def swauth_setup():
+    run('swauth-prep -K %s' % (swift_passwd))
 
 
 
@@ -382,15 +420,25 @@ def create_directories():
     sudo('mkdir -p /var/cache/swift')
     sudo('chown swift:swift /var/cache/swift')
 
+    sudo('mkdir -p /srv/node/swiftfs')
+    sudo('chown swift:swift /srv/node/swiftfs')
+
+    machine = machines[env.host_string]
+    # used to store fake xattrs
+    if machine.uselocalfs:
+        sudo('mkdir -p /etc/swift/xattrs')
+        sudo('chown swift:swift /etc/swift/xattrs')
+
 
 
 # This will create the users swift and memcache, 
 #  these users should be created when swift and memcached
 #  are installed. I recommend you reinstall swift and memcached
 #  if the users are not present before running this function
-def create_users():
+def create_users(memcached=False):
     execute(create_swift_user)
-    execute(create_memcached_user)
+    if memcached:
+        execute(create_memcached_user)
 
 @parallel
 @roles('swift-cluster')
@@ -408,12 +456,17 @@ def create_memcached_user():
         sudo('useradd -r -s /sbin/nologin -c "Memcached Daemon" memcached')
 
 
+@roles('swift-cluster')
+def change_shell(shell='/bin/bash'):
+    sudo('chsh -s %s %s' % (shell, env.user))
+
 @parallel
 @roles('swift-cluster')
-def check_login_shell():
+def check_login_shell(change=True):
     sh = run('echo $SHELL')
     if "bash" not in sh:
-        abort("The installation will not work unless bash is our default shell!!")
+        if change: change_shell()
+        else: abort("The installation will not work unless bash is our default shell!!")
     
 
 
@@ -429,11 +482,6 @@ def swift_restart():
 @roles('swift-cluster')
 def swift_stop():
     sudo('swift-init all stop')
-
-
-def get_os_type():
-
-    put(get_script_path('getmyos.py'), '/tmp/getmyos.py')
 
 
 @roles('boss')
@@ -478,9 +526,13 @@ def increase_networking_capabilities():
     sudo('sysctl -p')
 
 
+
+@parallel
 @roles('swift-cluster')
-def change_shell(shell='/bin/bash'):
-    sudo('chsh -s %s %s' % (shell, env.user))
+def fix_yum_fc15():
+    for repo in ['fedora', 'fedora-updates']:
+        sudo("perl -pi -e 's/#baseurl/baseurl/' /etc/yum.repos.d/%s.repo" %(repo))
+        sudo("perl -pi -e 's/mirrorlist/#mirrorlist/' /etc/yum.repos.d/%s.repo" % (repo))
 
 
 @roles('boss')
@@ -503,6 +555,21 @@ def ifconfig():
 @roles('swift-cluster')
 def df():
     sudo('df -h')
+
+@parallel
+@roles('swift-cluster')
+def restart_rsyslog():
+    sudo('service rsyslog restart')
+
+@roles('boss')
+def swauth_add_user(user='savant', group='savant', key='savant'):
+    proxyip = machines[swift_proxies[0]].pubip
+    run('swauth-add-user -A http://%s:8080/auth -K %s -a %s %s %s' 
+        % (proxyip, swift_passwd, group, user, key))
+
+
+
+
 
 
 # this is the main install function, it can be run multiple times
@@ -528,11 +595,10 @@ def swift_install():
         execute(setup_loop_device)
     execute(cluster_keygen)
     execute(cluster_rings)
-    if len(swift_proxies):
-        execute(proxy_config)
-    if len(swift_workers):
-        execute(storage_config)
+    execute(proxy_config)
+    execute(storage_config)
     execute(setup_logging)
+    execute(swauth_setup)
 
     print "\n\n\t Finished swift installation!"
     print "make sure to back up the *.builder files! \n\n"

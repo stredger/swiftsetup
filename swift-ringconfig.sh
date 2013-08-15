@@ -8,6 +8,7 @@ cat > account-server.conf <<EOF
 [DEFAULT]
 bind_ip = 0.0.0.0
 workers = 2
+mount_check=True
 
 [pipeline:main]
 pipeline = account-server
@@ -26,6 +27,7 @@ cat > container-server.conf <<EOF
 [DEFAULT]
 bind_ip = 0.0.0.0
 workers = 2
+mount_check=True
 
 [pipeline:main]
 pipeline = container-server
@@ -46,6 +48,7 @@ cat > object-server.conf <<EOF
 [DEFAULT]
 bind_ip = 0.0.0.0
 workers = 2
+mount_check=True
 
 [pipeline:main]
 pipeline = object-server

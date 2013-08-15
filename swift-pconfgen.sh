@@ -26,7 +26,7 @@ user_system_${user} = ${passwd} .admin
 use = egg:swauth#swauth
 set log_name = swauth
 super_admin_key = ${passwd}
-
+default_swift_cluster = local#http://PUBIP:8080/v1#http://127.0.0.1:8080/v1
 
 [filter:healthcheck]
 use = egg:swift#healthcheck

@@ -16,7 +16,7 @@ swift_script_dir = os.getcwd()
 check_shell = True
 
 # superuser for swift
-swift_user = 'megauser' # 'gis'
+swift_user = '.super_admin' #'megauser' # 'gis'
 
 # password for swift
 swift_passwd = 'stepheniscool' # 'uvicgis'
@@ -35,7 +35,7 @@ bossworkingdir = '/etc/swift'
 localworkingdir = '/tmp'
 
 # the replication factor in the cluster
-repfactor = 3
+repfactor = 1 
 
 
 #==================== Machines, Keys, Passwords ========================#
@@ -98,116 +98,139 @@ passwd = None
 #k = "~./ssh/st_rsa"
 #passwd = machinedef.prompt_for_password()
 
-# ubuntu
-msuffix = "pc3.utah.geniracks.net"
-utahinsta = {
-    msuffix+":32570" : machinedef.Machine(msuffix,
-                                          sshport=32570,
-                                          privip='10.10.1.3',
-                                          proxy=True,
-                                          boss=True,
-                                          ),
-    msuffix+":32571" : machinedef.Machine(msuffix,
-                                          sshport=32571,
-                                          privip='10.10.1.2',
-                                          worker=True,
-                                          objexp=True,
-                                          dev_setup=True,
-                                          dev_size=2*1024*1024
-                                          ),
-    msuffix+":32572" : machinedef.Machine(msuffix,
-                                          sshport=32572,
-                                          privip='10.10.1.1',
-                                          worker=True,
-                                          dev_setup=True,
-                                          dev_size=2*1024*1024
-                                          ),
-    msuffix+":32573" : machinedef.Machine(msuffix,
-                                          sshport=32573,
-                                          privip='10.10.1.4',
-                                          worker=True,
-                                          dev_setup=True,
-                                          dev_size=2*1024*1024
-                                          ),
-    }
-
-
-# ubuntu
-msuffix = "pc508.emulab.net"
-utahemu = {
-    msuffix+":31290" : machinedef.Machine(msuffix,
-                                          sshport=31290,
-                                          privip='10.10.1.1',
-                                          proxy=True,
-                                          boss=True
-                                          ),
-    msuffix+":31291" : machinedef.Machine(msuffix,
-                                          sshport=31291,
-                                          privip='10.10.1.2',
-                                          worker=True,
-                                          objexp=True,
-                                          dev_setup=True,
-                                          dev_size=2*1024*1024
-                                          ),
-    msuffix+":31292" : machinedef.Machine(msuffix,
-                                          sshport=31292,
-                                          privip='10.10.1.3',
-                                          worker=True,
-                                          dev_setup=True,
-                                          dev_size=2*1024*1024
-                                          ),
-    msuffix+":31293" : machinedef.Machine(msuffix,
-                                          sshport=31293,
-                                          privip='10.10.1.4',
-                                          worker=True,
-                                          dev_setup=True,
-                                          dev_size=2*1024*1024
-                                          ),
+# fedora
+msuffix = '.stephen.ch-geni-net.utah.geniracks.net'
+utah = {
+    'gc-1'+msuffix : machinedef.Machine('gc-1'+msuffix,
+                                        mtype='fedora',
+                                        privip='10.10.1.8',
+                                        proxy=True,
+                                        boss=True,
+                                        uselocalfs=True,
+                                        ),
+    'gc-2'+msuffix : machinedef.Machine('gc-2'+msuffix,
+                                        mtype='fedora',
+                                        privip='10.10.1.7',
+                                        worker=True,
+                                        objexp=True,
+                                        uselocalfs=True,
+                                        ),
+    'gc-3'+msuffix : machinedef.Machine('gc-3'+msuffix,
+                                        mtype='fedora',
+                                        privip='10.10.1.5',
+                                        worker=True,
+                                        uselocalfs=True,
+                                        ),
+    'gc-4'+msuffix : machinedef.Machine('gc-4'+msuffix,
+                                        mtype='fedora',
+                                        privip='10.10.1.6',
+                                        worker=True,
+                                        uselocalfs=True,
+                                        ),
     }
 
 
 # fedora
-msuffix = "pc1.instageni.gpolab.bbn.com"
+msuffix = '.stephen.ch-geni-net.lan.sdn.uky.edu'
+kentucky = {
+    'gc-1'+msuffix : machinedef.Machine('gc-1'+msuffix,
+                                        privip='10.10.1.8',
+                                        mtype='fedora',
+                                        proxy=True,
+                                        boss=True
+                                        ),
+    'gc-2'+msuffix : machinedef.Machine('gc-2'+msuffix,
+                                        privip='10.10.1.7',
+                                        mtype='fedora',
+                                        worker=True,
+                                        objexp=True,
+                                        uselocalfs=True,
+                                        ),
+    'gc-3'+msuffix : machinedef.Machine('gc-3'+msuffix,
+                                        privip='10.10.1.5',
+                                        mtype='fedora',
+                                        worker=True,
+                                        uselocalfs=True,
+                                        ),
+    'gc-4'+msuffix : machinedef.Machine('gc-4'+msuffix,
+                                        privip='10.10.1.6',
+                                        mtype='fedora',
+                                        worker=True,
+                                        uselocalfs=True,
+                                        ),
+    }
+
+
+# fedora
+msuffix = '.stephen.ch-geni-net.instageni.gpolab.bbn.com'
 gpo = {
-    msuffix+":33338" : machinedef.Machine(msuffix,
-                                          sshport=33338,
-                                          mtype='fedora',),
-    msuffix+":33339" : machinedef.Machine(msuffix,
-                                          sshport=33339,
-                                          mtype='fedora',),
-    msuffix+":33340" : machinedef.Machine(msuffix,
-                                          sshport=33340,
-                                          mtype='fedora',),
-    msuffix+":33341" : machinedef.Machine(msuffix,
-                                          sshport=33341,
-                                          mtype='fedora',)
+    'gc-1'+msuffix : machinedef.Machine('gc-1'+msuffix,
+                                        privip='10.10.1.8',
+                                        mtype='fedora',
+                                        proxy=True,
+                                        boss=True
+                                        ),
+    'gc-2'+msuffix : machinedef.Machine('gc-2'+msuffix,
+                                        privip='10.10.1.7',
+                                        mtype='fedora',
+                                        worker=True,
+                                        objexp=True,
+                                        uselocalfs=True,
+                                        ),
+    'gc-3'+msuffix : machinedef.Machine('gc-3'+msuffix,
+                                        privip='10.10.1.5',
+                                        mtype='fedora',
+                                        worker=True,
+                                        uselocalfs=True,
+                                        ),
+    'gc-4'+msuffix : machinedef.Machine('gc-4'+msuffix,
+                                        privip='10.10.1.6',
+                                        mtype='fedora',
+                                        worker=True,
+                                        uselocalfs=True,
+                                        ),
 }
 
 
+
+
 # ubuntu
-msuffix = ".uvic.trans-cloud.net"
+msuffix = '.uvic.trans-cloud.net'
 uvic = {
-    "grack01" + msuffix : machinedef.Machine("grack01" + msuffix,
+    'grack01' + msuffix : machinedef.Machine('grack01' + msuffix,
                                              proxy=True,
                                              boss=True),
-    "grack02" + msuffix : machinedef.Machine("grack02" + msuffix,
+    'grack02' + msuffix : machinedef.Machine('grack02' + msuffix,
                                              worker=True,
                                              proxy=True),
-    "grack03" + msuffix : machinedef.Machine("grack03" + msuffix,
+    'grack03' + msuffix : machinedef.Machine('grack03' + msuffix,
                                              worker=True),
-    "grack04" + msuffix : machinedef.Machine("grack04" + msuffix,
+    'grack04' + msuffix : machinedef.Machine('grack04' + msuffix,
                                              worker=True),
-    "grack06" + msuffix : machinedef.Machine("grack06" + msuffix,
+    'grack06' + msuffix : machinedef.Machine('grack06' + msuffix,
                                              worker=True,
                                              objexp=True)
     }
 
-# get savi machines in on this?
+
+savi = {
+    '142.104.64.68' : machinedef.Machine('142.104.64.68',
+                                         privip='10.6.9.4',
+                                         proxy=True,
+                                         boss=True
+                                         ),
+    '142.104.64.71' : machinedef.Machine('142.104.64.71',
+                                         privip='10.6.9.13',
+                                         worker=True,
+                                         objexp=True,
+                                         dev_setup=True,
+                                         dev_size=2*1024*1024,
+                                         )
+    }
 
 
-
-machines = utahemu
-#machines.update(utahInsta)
+machines = savi
+#machines.update(utah)
 
 
 
