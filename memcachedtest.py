@@ -3,6 +3,9 @@ from getmyip import *
 
 
 def test_memcached():
+	""" Checks if memcached is running and can store,
+	and retreve tokens """
+
     ip = getmyip()
 
     m = memc.MemcacheRing([ip+':11211'])

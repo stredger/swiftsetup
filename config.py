@@ -4,7 +4,39 @@ import machinedef
 import os
 
 
-# TODO: Checks so these variables cant screw us?
+"""
+Define parameters for a cluster where Swift is to be installed,
+
+Script Variables are global parameters, the only one that should
+definately be changed is the swift_passwd. This is the password
+to the admin account for the swift cluster.
+
+Machines are lists of Machine objects, define as follows:
+
+hostname, # the only required arg, hostname of the machine
+ip=None, # ip to use, if None will try to get the public ip
+mtype='ubuntu', # string to say machine type, should be 'ubuntu' or 'fedora'
+key="~/.ssh/id_rsa", # ssh keyfile to use #CURRENTLY IGNORED
+password="", # ssh password to use #CURRENTLY IGNORED
+worker=False, # if True we will be used to store stuff
+proxy=False, # if True we will have a proxy server installed
+boss=False, # if True we will be used to build the ring files (1 boss per cluster)
+obj_exp=False, # if True we will handle deleting unused objects from the cluster
+dev_setup=False, # if True we want to make a loopback file
+dev='swiftdisk', # name of our loopback file
+dev_path='/srv/', # path to where our loopback file will be
+dev_size=2*1024*1024, # (default=2GB) size of our swift filesystem in KB, 25MB is around the MIN size
+mntpt='/srv/node/swiftfs', # where our swift filesystem will be
+rsync_maxconn=6, # max connections for rsync to handle (used to move files)
+makeSwiftUser=True,
+makeMemcachedUser=False,
+sshport=None, # if these are set then fabrics en.host_string will 
+sshuser=None  #  return the ssh command like user@host:port (which we want)
+uselocalfs=False # dont use a separate partition for storage                
+"""
+
+
+# TODO: Checks so these variables cant mess up mid installation
 
 
 #==================== Script Variables ========================#
@@ -16,12 +48,12 @@ swift_script_dir = os.getcwd()
 check_shell = True
 
 # superuser for swift
-swift_user = '.super_admin' #'megauser' # 'gis'
+swift_user = '.super_admin'
 
 # password for swift
-swift_passwd = 'stepheniscool' # 'uvicgis'
+swift_passwd = 'stepheniscool'
 
-# this host will be connected to so a host
+# this remote host will be connected to so a local host
 #  can get its own ip
 host_to_check_ip = 'www.google.com'
 
@@ -35,68 +67,17 @@ bossworkingdir = '/etc/swift'
 localworkingdir = '/tmp'
 
 # the replication factor in the cluster
-repfactor = 1 
+repfactor = 3
 
 
 #==================== Machines, Keys, Passwords ========================#
 
 
-keyfile = '~/.ssh/st_rsa'
-passwd = None
+keyfile = '~/.ssh/id_rsa'
+passwd = None # machinedef.prompt_for_password()
 
 
 
-# ## The Machine() object is defined as follows: ##
-#
-# hostname, # the only required arg, hostname of the machine
-# ip=None, # ip to use, if None will try to get the public ip
-# mtype='ubuntu', # string to say machine type
-# key="~/.ssh/id_rsa", # ssh keyfile to use #CURRENTLY IGNORED
-# password="", # ssh password to use #CURRENTLY IGNORED
-# worker=False, # if True we will be used to store stuff
-# proxy=False, # if True we will have a proxy server installed
-# boss=False, # if True we will be used to build the ring files (1 boss per cluster)
-# obj_exp=False, # if True we will handle deleting unused objects from the cluster
-# dev_setup=False, # if True we want to make a loopback file
-# dev='swiftdisk', # name of our loopback file
-# dev_path='/srv/', # path to where our loopback file will be
-# dev_size=25*1024, # size of our swift filesystem in KB, 25MB is around the MIN size
-# mntpt='/srv/node/swiftfs', # where our swift filesystem will be
-# rsync_maxconn=6, # max connections for rsync to handle (used to move files)
-# makeSwiftUser=True,
-# makeMemcachedUser=False,
-# sshport=None, # if these are set then fabrics en.host_string will 
-# sshuser=None  #  return the ssh command like user@host:port (which we want)
-
-
-# msuffix1 = ".hdoop.vikelab.emulab.net"
-# # dictionary of hostname:Machine
-# machines = {
-#     "alpha" + msuffix1 : machinedef.Machine("alpha" + msuffix1,
-#                                             ip="",
-#                                             worker=True,
-#                                             proxy=True,
-#                                             boss=True,
-#                                             dev_setup=True,
-#                                             key=keyfile,
-#                                             password=passwd),
-#     "beta-0" + msuffix1 : machinedef.Machine("beta-0" + msuffix1,
-#                                              ip="",
-#                                              worker=True,
-#                                              dev_setup=True,
-#                                              key=keyfile,
-#                                              password=passwd),
-#     "beta-1" + msuffix1 : machinedef.Machine("beta-1" + msuffix1,
-#                                              ip="",
-#                                              worker=True,
-#                                              objexp=True,
-#                                              dev_setup=True,
-#                                              key=keyfile,
-#                                              password=passwd),
-#     }
-
-#k = "~./ssh/st_rsa"
-#passwd = machinedef.prompt_for_password()
 
 # fedora
 msuffix = '.stephen.ch-geni-net.utah.geniracks.net'
@@ -231,7 +212,6 @@ savi = {
 
 machines = savi
 #machines.update(utah)
-
 
 
 # Auto generate hostname lists for the fabric roles

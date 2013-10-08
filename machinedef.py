@@ -3,27 +3,32 @@ import socket as soc
 import getpass
 
 def getip(host):
+    """ gets the public ip of a given host """
     return soc.gethostbyname(host)
 
 
 def prompt_for_password():
+    """ will prompt for a password, that is masked when typed """
     return getpass.getpass()
 
 
+def gen_fab_hoststring(machine):
+    """ Creates the string we will ssh into a host with """
+    s = ""
+    if machine.sshuser is not None: s += "%s@" % (machine.sshuser)
+    s += machine.hostname
+    if machine.sshport is not None: s += ":%s" % (machine.sshport)
+    return s
+
 def generate_roles(machines):
+    """ Creates lists of host names for fabric to use """
+
     cluster = []
     worker = []
     proxy = []
     boss = None
     objexp = []
     loopbacks = []
-
-    def gen_fab_hoststring(machine):
-        s = ""
-        if machine.sshuser is not None: s += "%s@" % (machine.sshuser)
-        s += machine.hostname
-        if machine.sshport is not None: s += ":%s" % (machine.sshport)
-        return s
 
     for hostname, machine in machines.items():
         cluster.append(gen_fab_hoststring(machine))
@@ -37,7 +42,8 @@ def generate_roles(machines):
 
 
 class Machine():
-    
+    """ Machine object, used to hold configuration parameters for each machine """
+
     def __init__(self,
                  hostname, # the only required arg, hostname of the machine
                  pubip=None, # ip to use, if None will try to get the public ip
@@ -52,14 +58,14 @@ class Machine():
                  dev_setup=False, # if True we want to make a loopback file
                  dev='swiftdisk', # name of our loopback file
                  dev_path='/srv/', # path to where our loopback file will be
-                 dev_size=25*1024, # size of our swift filesystem in KB, 25MB is around the MIN size
+                 dev_size=25*1024*1024, # (default=2GB) size of our swift filesystem in KB, 25MB is around the MIN size
                  mntpt='/srv/node/swiftfs', # where our swift filesystem will be
                  rsync_maxconn=6, # max connections for rsync to handle (used to move files)
                  make_swift_user=True,
                  make_memcached_user=False,
                  sshport=None, # if these are set then fabrics en.host_string will 
                  sshuser=None, #  return the ssh command like user@host:port (which we want)
-                 uselocalfs=False
+                 uselocalfs=False # dont use a separate partition for storage
                  ):
 
         self.hostname = hostname
