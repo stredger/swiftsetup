@@ -1,8 +1,11 @@
+""" 
+Author: Stephen Tredger, 2013
 
+Copyright (c) 2013 University of Victoria
 
-import machinedef
-import os
-
+See LICENSE.txt or visit www.geni.net/wp-content/uploads/2009/02/genipublic.pdf 
+for the full license
+"""
 
 """
 Define parameters for a cluster where Swift is to be installed,
@@ -35,6 +38,8 @@ sshuser=None  #  return the ssh command like user@host:port (which we want)
 uselocalfs=False # dont use a separate partition for storage                
 """
 
+import machinedef
+import os
 
 # TODO: Checks so these variables cant mess up mid installation
 

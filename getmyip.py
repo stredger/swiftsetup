@@ -1,3 +1,12 @@
+""" 
+Author: Stephen Tredger, 2013
+
+Copyright (c) 2013 University of Victoria
+
+See LICENSE.txt or visit www.geni.net/wp-content/uploads/2009/02/genipublic.pdf 
+for the full license
+"""
+
 import socket
 import sys
 

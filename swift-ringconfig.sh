@@ -1,8 +1,14 @@
 #! /usr/bin/env bash
 
-# Create config files for each ring
-#
+# Author: Stephen Tredger, 2013
 
+# Copyright (c) 2013 University of Victoria
+
+# See LICENSE.txt or visit www.geni.net/wp-content/uploads/2009/02/genipublic.pdf 
+# for the full license
+
+
+# Create config files for each ring, worker nodes need these
 
 cat > account-server.conf <<EOF
 [DEFAULT]

@@ -1,7 +1,11 @@
+""" 
+Author: Stephen Tredger, 2013
 
-import sys, os
-from fabric.api import *
-from config import *
+Copyright (c) 2013 University of Victoria
+
+See LICENSE.txt or visit www.geni.net/wp-content/uploads/2009/02/genipublic.pdf 
+for the full license
+"""
 
 """
 Before you run:
@@ -20,6 +24,11 @@ To distribute rings: fab distribute_rings
 
 To restart all swift processes: fab swift_restart
 """
+
+import sys, os
+from fabric.api import *
+from config import *
+
 
 # TODO: get key and pass for each machine somehow..
 
