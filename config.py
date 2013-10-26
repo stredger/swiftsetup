@@ -34,8 +34,8 @@ rsync_maxconn=6, # max connections for rsync to handle (used to move files)
 makeSwiftUser=True,
 makeMemcachedUser=False,
 sshport=None, # if these are set then fabrics en.host_string will 
-sshuser=None  #  return the ssh command like user@host:port (which we want)
-uselocalfs=False # dont use a separate partition for storage                
+sshuser=None,  #  return the ssh command like user@host:port (which we want)
+uselocalfs=False # dont use a separate partition for storage
 """
 
 import machinedef
@@ -78,109 +78,136 @@ repfactor = 3
 #==================== Machines, Keys, Passwords ========================#
 
 
-keyfile = '~/.ssh/id_rsa'
+keyfile = '~/.ssh/st_rsa'
 passwd = None # machinedef.prompt_for_password()
 
 
 
-
-# fedora
-msuffix = '.stephen.ch-geni-net.utah.geniracks.net'
-utah = {
-    'gc-1'+msuffix : machinedef.Machine('gc-1'+msuffix,
-                                        mtype='fedora',
-                                        privip='10.10.1.8',
-                                        proxy=True,
-                                        boss=True,
-                                        uselocalfs=True,
-                                        ),
-    'gc-2'+msuffix : machinedef.Machine('gc-2'+msuffix,
-                                        mtype='fedora',
-                                        privip='10.10.1.7',
-                                        worker=True,
-                                        objexp=True,
-                                        uselocalfs=True,
-                                        ),
-    'gc-3'+msuffix : machinedef.Machine('gc-3'+msuffix,
-                                        mtype='fedora',
-                                        privip='10.10.1.5',
-                                        worker=True,
-                                        uselocalfs=True,
-                                        ),
-    'gc-4'+msuffix : machinedef.Machine('gc-4'+msuffix,
-                                        mtype='fedora',
-                                        privip='10.10.1.6',
-                                        worker=True,
-                                        uselocalfs=True,
-                                        ),
+msuffix = '.instageni.clemson.edu'
+clemson = {
+    'pcvm5-2'+msuffix : machinedef.Machine('pcvm5-2'+msuffix,
+                                            privip='10.10.1.4',
+                                            proxy=True,
+                                            boss=True,
+                                            dev_setup=True,
+                                            dev_size=2*1024*1024
+                                            ),
+    'pcvm5-3'+msuffix : machinedef.Machine('pcvm5-3'+msuffix,
+                                            privip='10.10.1.3',
+                                            worker=True,
+                                            objexp=True,
+                                            dev_setup=True,
+                                            dev_size=2*1024*1024
+                                            ),
+    'pcvm5-4'+msuffix : machinedef.Machine('pcvm5-4'+msuffix,
+                                            privip='10.10.1.2',
+                                            worker=True,
+                                            dev_setup=True,
+                                            dev_size=2*1024*1024                                            
+                                            ),
+    'pcvm5-1'+msuffix : machinedef.Machine('pcvm5-1'+msuffix,
+                                            privip='10.10.1.1',
+                                            worker=True,
+                                            dev_setup=True,
+                                            dev_size=2*1024*1024                                            
+                                            ),
     }
 
 
-# fedora
-msuffix = '.stephen.ch-geni-net.lan.sdn.uky.edu'
-kentucky = {
-    'gc-1'+msuffix : machinedef.Machine('gc-1'+msuffix,
-                                        privip='10.10.1.8',
-                                        mtype='fedora',
-                                        proxy=True,
-                                        boss=True
-                                        ),
-    'gc-2'+msuffix : machinedef.Machine('gc-2'+msuffix,
-                                        privip='10.10.1.7',
-                                        mtype='fedora',
-                                        worker=True,
-                                        objexp=True,
-                                        uselocalfs=True,
-                                        ),
-    'gc-3'+msuffix : machinedef.Machine('gc-3'+msuffix,
-                                        privip='10.10.1.5',
-                                        mtype='fedora',
-                                        worker=True,
-                                        uselocalfs=True,
-                                        ),
-    'gc-4'+msuffix : machinedef.Machine('gc-4'+msuffix,
-                                        privip='10.10.1.6',
-                                        mtype='fedora',
-                                        worker=True,
-                                        uselocalfs=True,
-                                        ),
+msuffix = '.genirack.nyu.edu'
+nyu = {
+    'pcvm5-2'+msuffix : machinedef.Machine('pcvm5-2'+msuffix,
+                                            privip='10.10.1.4',
+                                            proxy=True,
+                                            boss=True,
+                                            dev_setup=True,
+                                            dev_size=2*1024*1024
+                                            ),
+    'pcvm5-3'+msuffix : machinedef.Machine('pcvm5-3'+msuffix,
+                                            privip='10.10.1.3',
+                                            worker=True,
+                                            objexp=True,
+                                            dev_setup=True,
+                                            dev_size=2*1024*1024
+                                            ),
+    'pcvm5-4'+msuffix : machinedef.Machine('pcvm5-4'+msuffix,
+                                            privip='10.10.1.2',
+                                            worker=True,
+                                            dev_setup=True,
+                                            dev_size=2*1024*1024                                            
+                                            ),
+    'pcvm5-1'+msuffix : machinedef.Machine('pcvm5-1'+msuffix,
+                                            privip='10.10.1.1',
+                                            worker=True,
+                                            dev_setup=True,
+                                            dev_size=2*1024*1024                                            
+                                            ),
     }
 
 
-# fedora
-msuffix = '.stephen.ch-geni-net.instageni.gpolab.bbn.com'
+msuffix = '.instageni.gpolab.bbn.com'
 gpo = {
-    'gc-1'+msuffix : machinedef.Machine('gc-1'+msuffix,
-                                        privip='10.10.1.8',
-                                        mtype='fedora',
-                                        proxy=True,
-                                        boss=True
-                                        ),
-    'gc-2'+msuffix : machinedef.Machine('gc-2'+msuffix,
-                                        privip='10.10.1.7',
-                                        mtype='fedora',
-                                        worker=True,
-                                        objexp=True,
-                                        uselocalfs=True,
-                                        ),
-    'gc-3'+msuffix : machinedef.Machine('gc-3'+msuffix,
-                                        privip='10.10.1.5',
-                                        mtype='fedora',
-                                        worker=True,
-                                        uselocalfs=True,
-                                        ),
-    'gc-4'+msuffix : machinedef.Machine('gc-4'+msuffix,
-                                        privip='10.10.1.6',
-                                        mtype='fedora',
-                                        worker=True,
-                                        uselocalfs=True,
-                                        ),
-}
+    'pcvm4-2'+msuffix : machinedef.Machine('pcvm4-2'+msuffix,
+                                            privip='10.10.1.4',
+                                            proxy=True,
+                                            boss=True,
+                                            dev_setup=True,
+                                            dev_size=2*1024*1024                                              
+                                            ),
+    'pcvm4-3'+msuffix : machinedef.Machine('pcvm4-3'+msuffix,
+                                            privip='10.10.1.3',
+                                            worker=True,
+                                            objexp=True,
+                                            dev_setup=True,
+                                            dev_size=2*1024*1024                                              
+                                            ),
+    'pcvm4-4'+msuffix : machinedef.Machine('pcvm4-4'+msuffix,
+                                            privip='10.10.1.2',
+                                            worker=True,
+                                            dev_setup=True,
+                                            dev_size=2*1024*1024                                              
+                                            ),
+    'pcvm4-1'+msuffix : machinedef.Machine('pcvm4-1'+msuffix,
+                                            privip='10.10.1.1',
+                                            worker=True,
+                                            dev_setup=True,
+                                            dev_size=2*1024*1024                                              
+                                            ),
+    }
+
+
+msuffix = '.instageni.rnet.missouri.edu'
+missouri = {
+    'pcvm4-2'+msuffix : machinedef.Machine('pcvm4-2'+msuffix,
+                                            privip='10.10.1.4',
+                                            proxy=True,
+                                            boss=True,
+                                            dev_setup=True,
+                                            dev_size=2*1024*1024                                              
+                                            ),
+    'pcvm4-3'+msuffix : machinedef.Machine('pcvm4-3'+msuffix,
+                                            privip='10.10.1.3',
+                                            worker=True,
+                                            objexp=True,
+                                            dev_setup=True,
+                                            dev_size=2*1024*1024                                              
+                                            ),
+    'pcvm4-4'+msuffix : machinedef.Machine('pcvm4-4'+msuffix,
+                                            privip='10.10.1.2',
+                                            worker=True,
+                                            dev_setup=True,
+                                            dev_size=2*1024*1024                                              
+                                            ),
+    'pcvm4-1'+msuffix : machinedef.Machine('pcvm4-1'+msuffix,
+                                            privip='10.10.1.1',
+                                            worker=True,
+                                            dev_setup=True,
+                                            dev_size=2*1024*1024                                              
+                                            ),
+    }
 
 
 
-
-# ubuntu
 msuffix = '.uvic.trans-cloud.net'
 uvic = {
     'grack01' + msuffix : machinedef.Machine('grack01' + msuffix,
@@ -215,7 +242,7 @@ savi = {
     }
 
 
-machines = savi
+machines = nyu
 #machines.update(utah)
 
 

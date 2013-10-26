@@ -537,7 +537,9 @@ def test_proxies():
     """ Test that we can correctly connect to all swift proxies """
     for proxy in swift_proxies:
         p = machines[env.host_string].pubip
-        run('swift -A http://%s:8080/auth/v1.0 -U system:%s -K %s stat' % (p, swift_user, swift_passwd))
+        if authtype is 'swauth': account = '.super_admin' 
+        else: account = 'system'
+        run('swift -A http://%s:8080/auth/v1.0 -U %s:%s -K %s stat' % (p, account, swift_user, swift_passwd))
 
 
 @roles('swift-cluster')
@@ -624,12 +626,12 @@ def restart_rsyslog():
 @roles('boss')
 def swauth_add_user(user='savant', group='savant', key='savant'):
     """ add a user to a swift install with swauth """
+    # we only want to have one per cluster, so grab the first proxy
     proxyip = machines[swift_proxies[0]].pubip
     run('swauth-add-user -A http://%s:8080/auth -K %s -a %s %s %s' 
         % (proxyip, swift_passwd, group, user, key))
 
-
-
+    
 
 
 def swift_install():
