@@ -71,181 +71,156 @@ bossworkingdir = '/etc/swift'
 # where we will generate temp files and such on the local machine
 localworkingdir = '/tmp'
 
-# the replication factor in the cluster
-repfactor = 3
+# where we will download git repos and such to one the remote machine
+remoteworkingdir = '.'
 
+# the replication factor in the cluster
+repfactor = 1
+
+# this will put actual ips in swift and rsync config files, if false will use the wildcard 0.0.0.0
+use_actual_ip_in_config_files = False
 
 #==================== Machines, Keys, Passwords ========================#
 
-
+usr = None
 keyfile = '~/.ssh/st_rsa'
 passwd = None # machinedef.prompt_for_password()
 
 
 
-msuffix = '.instageni.clemson.edu'
-clemson = {
-    'pcvm5-2'+msuffix : machinedef.Machine('pcvm5-2'+msuffix,
-                                            privip='10.10.1.4',
-                                            proxy=True,
-                                            boss=True,
-                                            dev_setup=True,
-                                            dev_size=2*1024*1024
-                                            ),
-    'pcvm5-3'+msuffix : machinedef.Machine('pcvm5-3'+msuffix,
-                                            privip='10.10.1.3',
-                                            worker=True,
-                                            objexp=True,
-                                            dev_setup=True,
-                                            dev_size=2*1024*1024
-                                            ),
-    'pcvm5-4'+msuffix : machinedef.Machine('pcvm5-4'+msuffix,
-                                            privip='10.10.1.2',
-                                            worker=True,
-                                            dev_setup=True,
-                                            dev_size=2*1024*1024                                            
-                                            ),
-    'pcvm5-1'+msuffix : machinedef.Machine('pcvm5-1'+msuffix,
-                                            privip='10.10.1.1',
-                                            worker=True,
-                                            dev_setup=True,
-                                            dev_size=2*1024*1024                                            
-                                            ),
-    }
 
-
-msuffix = '.genirack.nyu.edu'
-nyu = {
-    'pcvm5-2'+msuffix : machinedef.Machine('pcvm5-2'+msuffix,
-                                            privip='10.10.1.4',
-                                            proxy=True,
-                                            boss=True,
-                                            dev_setup=True,
-                                            dev_size=2*1024*1024
-                                            ),
-    'pcvm5-3'+msuffix : machinedef.Machine('pcvm5-3'+msuffix,
-                                            privip='10.10.1.3',
-                                            worker=True,
-                                            objexp=True,
-                                            dev_setup=True,
-                                            dev_size=2*1024*1024
-                                            ),
-    'pcvm5-4'+msuffix : machinedef.Machine('pcvm5-4'+msuffix,
-                                            privip='10.10.1.2',
-                                            worker=True,
-                                            dev_setup=True,
-                                            dev_size=2*1024*1024                                            
-                                            ),
-    'pcvm5-1'+msuffix : machinedef.Machine('pcvm5-1'+msuffix,
-                                            privip='10.10.1.1',
-                                            worker=True,
-                                            dev_setup=True,
-                                            dev_size=2*1024*1024                                            
-                                            ),
-    }
-
-
-msuffix = '.instageni.gpolab.bbn.com'
-gpo = {
-    'pcvm4-2'+msuffix : machinedef.Machine('pcvm4-2'+msuffix,
-                                            privip='10.10.1.4',
-                                            proxy=True,
-                                            boss=True,
-                                            dev_setup=True,
-                                            dev_size=2*1024*1024                                              
-                                            ),
-    'pcvm4-3'+msuffix : machinedef.Machine('pcvm4-3'+msuffix,
-                                            privip='10.10.1.3',
-                                            worker=True,
-                                            objexp=True,
-                                            dev_setup=True,
-                                            dev_size=2*1024*1024                                              
-                                            ),
-    'pcvm4-4'+msuffix : machinedef.Machine('pcvm4-4'+msuffix,
-                                            privip='10.10.1.2',
-                                            worker=True,
-                                            dev_setup=True,
-                                            dev_size=2*1024*1024                                              
-                                            ),
-    'pcvm4-1'+msuffix : machinedef.Machine('pcvm4-1'+msuffix,
-                                            privip='10.10.1.1',
-                                            worker=True,
-                                            dev_setup=True,
-                                            dev_size=2*1024*1024                                              
-                                            ),
-    }
-
-
-msuffix = '.instageni.rnet.missouri.edu'
-missouri = {
-    'pcvm4-2'+msuffix : machinedef.Machine('pcvm4-2'+msuffix,
-                                            privip='10.10.1.4',
-                                            proxy=True,
-                                            boss=True,
-                                            dev_setup=True,
-                                            dev_size=2*1024*1024                                              
-                                            ),
-    'pcvm4-3'+msuffix : machinedef.Machine('pcvm4-3'+msuffix,
-                                            privip='10.10.1.3',
-                                            worker=True,
-                                            objexp=True,
-                                            dev_setup=True,
-                                            dev_size=2*1024*1024                                              
-                                            ),
-    'pcvm4-4'+msuffix : machinedef.Machine('pcvm4-4'+msuffix,
-                                            privip='10.10.1.2',
-                                            worker=True,
-                                            dev_setup=True,
-                                            dev_size=2*1024*1024                                              
-                                            ),
-    'pcvm4-1'+msuffix : machinedef.Machine('pcvm4-1'+msuffix,
-                                            privip='10.10.1.1',
-                                            worker=True,
-                                            dev_setup=True,
-                                            dev_size=2*1024*1024                                              
-                                            ),
-    }
+# msuffix = '.uvic.trans-cloud.net'
+# uvic = {
+#   'grack01' + msuffix : machinedef.Machine( 'grack01' + msuffix,
+#                                             proxy=True,
+#                                             boss=True),
+#   'grack02' + msuffix : machinedef.Machine( 'grack02' + msuffix,
+#                                             worker=True,
+#                                             proxy=True),
+#   'grack03' + msuffix : machinedef.Machine( 'grack03' + msuffix,
+#                                             worker=True),
+#   'grack04' + msuffix : machinedef.Machine( 'grack04' + msuffix,
+#                                             worker=True),
+#   'grack06' + msuffix : machinedef.Machine( 'grack06' + msuffix,
+#                                             worker=True,
+#                                             objexp=True)
+#   }
 
 
 
-msuffix = '.uvic.trans-cloud.net'
-uvic = {
-    'grack01' + msuffix : machinedef.Machine('grack01' + msuffix,
-                                             proxy=True,
-                                             boss=True),
-    'grack02' + msuffix : machinedef.Machine('grack02' + msuffix,
-                                             worker=True,
-                                             proxy=True),
-    'grack03' + msuffix : machinedef.Machine('grack03' + msuffix,
-                                             worker=True),
-    'grack04' + msuffix : machinedef.Machine('grack04' + msuffix,
-                                             worker=True),
-    'grack06' + msuffix : machinedef.Machine('grack06' + msuffix,
-                                             worker=True,
-                                             objexp=True)
-    }
+# vicci = {
+#   # 'node24.washington.vicci.org' is syndicate MS
+#   'node40.washington.vicci.org': machinedef.Machine('node40.washington.vicci.org',
+#                                   privip='10.129.39.40',
+#                                   proxy=True,
+#                                   boss=True,
+#                                   mtype='fedora'
+#                                 ),
+#   'node6.washington.vicci.org': machinedef.Machine('node6.washington.vicci.org',
+#                                   privip='10.129.39.6',    
+#                                   worker=True,
+#                                   objexp=True,
+#                                   uselocalfs=True,
+#                                   mtype='fedora'
+#                                 ),
+#   'node60.washington.vicci.org': machinedef.Machine('node60.washington.vicci.org',
+#                                   privip='10.129.39.60',
+#                                   worker=True,
+#                                   uselocalfs=True,
+#                                   mtype='fedora'
+#                                 ),
+#   'node61.washington.vicci.org': machinedef.Machine('node61.washington.vicci.org',
+#                                   privip='10.129.39.61',
+#                                   worker=True,
+#                                   uselocalfs=True,
+#                                   mtype='fedora'
+#                                 )
+# }
 
 
-savi = {
-    '142.104.64.68' : machinedef.Machine('142.104.64.68',
-                                         privip='10.6.9.4',
-                                         proxy=True,
-                                         boss=True
-                                         ),
-    '142.104.64.71' : machinedef.Machine('142.104.64.71',
-                                         privip='10.6.9.13',
-                                         worker=True,
-                                         objexp=True,
-                                         dev_setup=True,
-                                         dev_size=2*1024*1024,
-                                         )
-    }
+savi_vic = {
+  '142.104.17.135' : machinedef.Machine('142.104.17.135',
+                    privip='10.6.9.13',
+                    proxy=True,
+                    boss=True,
+                    worker=True,
+                    objexp=True,
+                    # dev_setup=True,
+                    # dev_size=2*1024*1024,
+                    )
+  }
 
+savi_tor = {
+  '142.150.208.220' : machinedef.Machine('142.150.208.220',
+                    privip='10.12.9.5',
+                    proxy=True,
+                    boss=True,
+                    ),
+  '142.150.208.222' : machinedef.Machine('142.150.208.222',
+                    privip='10.12.9.4',
+                    worker=True,
+                    objexp=True,
+                    dev_setup=True,
+                    dev_size=2*1024*1024,
+                    )
+  }
 
-machines = nyu
+savi_carl = {
+  '134.117.57.138' : machinedef.Machine('134.117.57.138',
+                    privip='10.8.9.5',
+                    proxy=True,
+                    boss=True,
+                    ),
+  '134.117.57.137' : machinedef.Machine('134.117.57.137',
+                    privip='10.8.9.4',
+                    worker=True,
+                    objexp=True,
+                    dev_setup=True,
+                    dev_size=2*1024*1024,
+                    )
+  }
+
+# bench = {
+#   'a.microbe.vikelab.emulab.net' :  
+#     machinedef.Machine(
+#       'a.microbe.vikelab.emulab.net',
+#       proxy=True,
+#       boss=True,
+#       objexp=True
+#     ),
+#   'b.microbe.vikelab.emulab.net' :  
+#     machinedef.Machine(
+#       'b.microbe.vikelab.emulab.net',
+#       worker=True,
+#       objexp=True,
+#       dev_setup=True,
+#       dev_size=2*1024*1024
+#     )    
+# }
+
+# bench2 = {
+#   'node0.syn.vikelab.emulab.net' :  
+#     machinedef.Machine(
+#       'node0.syn.vikelab.emulab.net',
+#       proxy=True,
+#       boss=True,
+#       objexp=True
+#     ),
+#   'node1.syn.vikelab.emulab.net' :  
+#     machinedef.Machine(
+#       'node1.syn.vikelab.emulab.net',
+#       worker=True,
+#       objexp=True,
+#       # dev_setup=True,
+#       # dev_size=2*1024*1024
+#     )    
+# }
+
+machines = savi_vic
 #machines.update(utah)
 
 
 # Auto generate hostname lists for the fabric roles
 swift_cluster,swift_workers,swift_proxies,boss, \
-    swift_object_exp,loopback_machines = machinedef.generate_roles(machines)
+  swift_object_exp,loopback_machines = machinedef.generate_roles(machines)
+

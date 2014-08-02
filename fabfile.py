@@ -43,6 +43,7 @@ env.roledefs = {
     'loopback-machines':loopback_machines
 }
 
+if usr: env.user = usr
 if keyfile: env.key_filename = keyfile
 env.password = passwd or ''
 
@@ -236,8 +237,9 @@ def rsync_config():
     put(os.path.join(localworkingdir, 'rsyncd.conf'), '/etc/', use_sudo=True)
     sudo('perl -pi -e "s/MAXCONN/%s/" /etc/rsyncd.conf' % (machine.rsync_maxconn))
     # use : instead of / as fspath is a path with /'s in it!
-    sudo('perl -pi -e "s:SWIFTFSPATH:%s:" /etc/rsyncd.conf' % (fspath)) 
-    sudo('perl -pi -e "s/0.0.0.0/%s/" /etc/rsyncd.conf' % (ip))
+    sudo('perl -pi -e "s:SWIFTFSPATH:%s:" /etc/rsyncd.conf' % (fspath))
+    if use_actual_ip_in_config_files:
+        sudo('perl -pi -e "s/0.0.0.0/%s/" /etc/rsyncd.conf' % (ip))
 
     if machine.type.lower() == 'ubuntu':
         sudo('perl -pi -e "s/RSYNC_ENABLE=false/RSYNC_ENABLE=true/" /etc/default/rsync')
@@ -279,10 +281,10 @@ def cluster_storage():
     put(os.path.join(localworkingdir, 'object-server.conf'), 
         '/etc/swift/', use_sudo=True)
 
-    sudo('perl -pi -e "s/0.0.0.0/%s/" /etc/swift/*-server.conf' % (ip))
+    if use_actual_ip_in_config_files:
+        sudo('perl -pi -e "s/0.0.0.0/%s/" /etc/swift/*-server.conf' % (ip))
 
-    if machine.uselocalfs:
-        sudo('perl -pi -e "s/mount_check=True/mount_check=False/" /etc/swift/*-server.conf')
+    if machine.uselocalfs: pass
 
     sudo('chown swift:swift %s' % swiftfs_path)
     sudo('chown -R swift:swift /etc/swift')
@@ -313,10 +315,9 @@ def distribute_key():
     """ Moves the key (swift.conf) to each machine in the cluster """
     sudo('mkdir -p /etc/swift')
     sudo('chmod a+w /etc/swift')
-    put(os.path.join(localworkingdir, 'swift.conf'), '/etc/swift/swift.conf')
+    put(os.path.join(localworkingdir, 'swift.conf'), '/etc/swift/swift.conf', use_sudo=True)
     sudo('chown -R swift:swift /etc/swift')
     
-
 
 
 @parallel
@@ -326,14 +327,17 @@ def setup_loop_device():
      Makes the actual loopback file in 'machine.dev_path' called 'machine.dev'
     """
     machine = machines[env.host_string]
-    devpath = os.path.join(machine.dev_path, machine.dev)
+    fulldevpath = os.path.join(machine.dev_path, machine.dev)
     disksize = machine.dev_size
     mntpt = machine.mntpt
 
+    # do we already have a fs at the mount point?
+    if mntpt in sudo('df -h'): return
+
     sudo('mkdir -p %s' % (machine.dev_path))
-    sudo('dd if=/dev/zero of=%s bs=1024 count=0 seek=%s' % (devpath, disksize))
-    sudo('mkfs.xfs -i size=1024 %s' % (devpath))
-    sudo('echo "%s %s xfs loop,noatime,nodiratime,nobarrier,logbufs=8 0 0" >> /etc/fstab' % (devpath, mntpt))
+    sudo('dd if=/dev/zero of=%s bs=1024 count=0 seek=%s' % (fulldevpath, disksize))
+    sudo('mkfs.xfs -i size=1024 %s' % (fulldevpath))
+    sudo('echo "%s %s xfs loop,noatime,nodiratime,nobarrier,logbufs=8 0 0" >> /etc/fstab' % (fulldevpath, mntpt))
 
     sudo('mkdir -p %s' % (mntpt))
     sudo('mount %s' % (mntpt))
@@ -365,7 +369,8 @@ def cluster_logging():
     sudo('chown root:root /etc/rsyslog.d/swift.conf')
     sudo('chown root:root /etc/logrotate.d/swift')
     # fedora machines the same? Also might want to reload not restart
-    sudo('service rsyslog restart')
+    with settings(warn_only=True):
+        sudo('service rsyslog restart')
 
 
 @parallel
@@ -388,7 +393,7 @@ def install_dependencies():
     if machine.type == 'ubuntu':
         with settings(warn_only=True):
             sudo('apt-get update')
-        sudo('apt-get -y --force-yes install libffi6 libffi-dev memcached git-core xfsprogs rsync python-configobj python-coverage python-nose python-setuptools python-simplejson python-xattr python-webob python-eventlet python-greenlet python-netifaces') # python-pastedeploy
+        sudo('export DEBIAN_FRONTEND=noninteractive && apt-get -y --force-yes install libffi6 libffi-dev memcached git-core xfsprogs rsync python-configobj python-coverage python-nose python-setuptools python-simplejson python-xattr python-webob python-eventlet python-greenlet python-netifaces') # python-pastedeploy
     elif machine.type == 'fedora':
         sudo('yum -y install git gcc libffi libffi-devel memcached xinetd rsync xfsprogs python-netifaces python-nose python-mock python-dns python-setuptools python-simplejson')
 
@@ -399,15 +404,15 @@ def install_dependencies():
 @parallel
 @roles('swift-cluster')
 def install_swift_from_git():
-   """ get swift from git, checkout v1.9.0 and install it """
+   """ get swift from git, checkout v2.0.0 and install it """
    machine = machines[env.host_string]
 
-   with cd('/tmp'):
+   with cd(remoteworkingdir):
        with settings(warn_only=True):
            run('git clone https://github.com/openstack/swift.git')
        with cd('swift'):
            with settings(warn_only=True):
-               run('git checkout 1.9.0 -b v1.9.0')
+               run('git checkout 2.0.0 -b v2.0.0')
 
                # for some reason we fail to install dependencies
                #  the first time. Instead of figuring out the problem,
@@ -421,7 +426,7 @@ def install_swift_from_git():
 @roles('swift-cluster')
 def install_swauth_from_git():
     """ get swauth from git, checkout v1.0.8 and install it """
-    with cd('/tmp'):
+    with cd(remoteworkingdir):
         with settings(warn_only=True):
             run('git clone https://github.com/gholt/swauth.git')
         with cd('swauth'):
@@ -434,7 +439,7 @@ def install_swauth_from_git():
 @roles('swift-workers')
 def install_xattr_hack():
     """ installs our xattr swift hack from github """
-    with cd('/tmp'):
+    with cd(remoteworkingdir):
        with settings(warn_only=True):
            run('git clone https://github.com/stredger/fake-xattr.git')
        with cd('fake-xattr'):
@@ -484,7 +489,8 @@ def create_swift_user():
     """ Creates a swift user, on machines that want it """
     machine = machines[env.host_string]
     if machine.makeSwiftUser:
-        sudo('useradd -r -s /sbin/nologin -c "Swift Daemon" swift')
+        with settings(warn_only=True):
+            sudo('useradd -r -s /sbin/nologin -c "Swift Daemon" swift')
 
 
 @parallel
@@ -493,7 +499,8 @@ def create_memcached_user():
     """ Creates a memcached worker, on machines that want it """
     machine = machines[env.host_string]
     if machine.makeMemcachedUser:
-        sudo('useradd -r -s /sbin/nologin -c "Memcached Daemon" memcached')
+        with settings(warn_only=True):
+            sudo('useradd -r -s /sbin/nologin -c "Memcached Daemon" memcached')
 
 
 @roles('swift-cluster')
@@ -559,9 +566,9 @@ def test_memcached():
 
 @parallel
 @roles('swift-cluster')
-def clean_files(files="proxy-server.conf"):
+def clean_files(files='/etc/swift/swift.conf'):
     """ Remove files on all machines in the cluster """
-    sudo('rm -rf '+files)
+    sudo('rm -rf %s' % (files))
 
 
 @parallel
@@ -594,7 +601,7 @@ def fix_yum_fc15():
 @roles('boss')
 def init_swauth_web_admin():
     """ initialize the swauth web admin interface """
-    with cd('/tmp'):
+    with cd(remoteworkingdir):
         with settings(warn_only=True):        
             run('git clone https://github.com/gholt/swauth.git')    
         with cd('swauth/webadmin'):
@@ -631,8 +638,23 @@ def swauth_add_user(user='savant', group='savant', key='savant'):
     run('swauth-add-user -A http://%s:8080/auth -K %s -a %s %s %s' 
         % (proxyip, swift_passwd, group, user, key))
 
-    
 
+
+""" something like this
+def make_container_readable():
+    ret = gcswift.do_swift_command(proxy, "post --read-acl='.r:*,.rlistings' "+b, "", 1)
+
+  command = "swift -A http://%s/auth/v1.0 -U " + swift_user + \
+    " -K " + settings.SWIFT_PWD + " " + \
+    operation + " " + \
+    bucket + " " + \
+    args % (env.host_string, )
+  # print command
+  # spawn a shell that executes swift, we set the sid of the shell so
+  #  we can kill it and all its children with os.killpg
+  p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE,
+    stderr=subprocess.PIPE, preexec_fn=os.setsid)
+"""
 
 def swift_install():
     """ this is the main install function, run this to do a full install.
@@ -664,4 +686,5 @@ def swift_install():
     execute(swauth_setup)
 
     print "\n\n\t Finished swift installation!"
-    print "make sure to back up the *.builder files! \n\n"
+    print "To test the proxy connections run 'fab test_proxies'"
+    print "Make sure to back up the *.builder files! \n\n"
